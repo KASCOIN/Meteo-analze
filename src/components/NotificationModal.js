@@ -11,6 +11,7 @@ import {
   StyleSheet,
   Platform,
 } from 'react-native';
+import * as Location from 'expo-location';
 import { searchLocations } from '../services/geocodingEngine';
 
 export const NotificationModal = ({
@@ -32,6 +33,7 @@ export const NotificationModal = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
 
   if (!isOpen) return null;
 
@@ -44,6 +46,32 @@ export const NotificationModal = ({
       setIsSearching(false);
     } else {
       setSearchResults([]);
+    }
+  };
+
+  const handleSetGpsLocation = async () => {
+    setIsLocating(true);
+    try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        alert('Permission to access location was denied.');
+        setIsLocating(false);
+        return;
+      }
+
+      let pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setLocation({
+        name: 'My Present Location',
+        country: 'GPS Target',
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+      });
+      setSearchQuery('');
+      setSearchResults([]);
+    } catch (err) {
+      alert('Could not obtain device location for alerts.');
+    } finally {
+      setIsLocating(false);
     }
   };
 
@@ -75,20 +103,36 @@ export const NotificationModal = ({
               />
             </View>
 
-            {/* 1. Target Location */}
-            <Text style={[modalStyles.sectionTitle, { color: theme.textPrimary, marginTop: 12 }]}>1. Notification Location</Text>
-            <View style={{ position: 'relative', marginBottom: 6 }}>
-              <TextInput
-                style={[
-                  modalStyles.input,
-                  { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.borderColor },
-                ]}
-                placeholder="Search alert city..."
-                placeholderTextColor={theme.textSecondary}
-                value={searchQuery}
-                onChangeText={handleSearch}
-              />
-              {isSearching && <ActivityIndicator size="small" color="#0d6efd" style={modalStyles.searchLoader} />}
+            {/* 1. Target Location Selection with GPS Icon */}
+            <Text style={[modalStyles.sectionTitle, { color: theme.textPrimary, marginTop: 12 }]}>1. Notification Location Target</Text>
+            
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+              <View style={{ flex: 1, position: 'relative' }}>
+                <TextInput
+                  style={[
+                    modalStyles.input,
+                    { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.borderColor },
+                  ]}
+                  placeholder="Search alert target city..."
+                  placeholderTextColor={theme.textSecondary}
+                  value={searchQuery}
+                  onChangeText={handleSearch}
+                />
+                {isSearching && <ActivityIndicator size="small" color="#0d6efd" style={modalStyles.searchLoader} />}
+              </View>
+
+              {/* Present GPS Location Button Icon */}
+              <TouchableOpacity
+                style={modalStyles.gpsIconButton}
+                onPress={handleSetGpsLocation}
+                disabled={isLocating}
+              >
+                {isLocating ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 13 }}>📍 Me</Text>
+                )}
+              </TouchableOpacity>
             </View>
 
             {searchResults.length > 0 && (
@@ -117,9 +161,11 @@ export const NotificationModal = ({
               </View>
             )}
 
-            <Text style={[modalStyles.selectedText, { color: '#0d6efd' }]}>
-              Active Target: 📍 {location.name} ({location.latitude}°N, {location.longitude}°E)
-            </Text>
+            <View style={modalStyles.targetBadge}>
+              <Text style={{ color: '#0d6efd', fontWeight: '700', fontSize: 12 }}>
+                Active Alert Target: 📍 {location.name} ({location.latitude}°N, {location.longitude}°E)
+              </Text>
+            </View>
 
             {/* 2. Interval Selection */}
             <Text style={[modalStyles.sectionTitle, { color: theme.textPrimary, marginTop: 12 }]}>2. Notification Interval</Text>
@@ -184,7 +230,7 @@ export const NotificationModal = ({
             </TouchableOpacity>
 
             <TouchableOpacity style={[modalStyles.closeModalButton, { backgroundColor: theme.borderColor }]} onPress={onClose}>
-              <Text style={{ color: theme.textPrimary, fontWeight: 'bold' }}>Close Alert Settings</Text>
+              <Text style={{ color: theme.textPrimary, fontWeight: 'bold' }}>Save & Close Settings</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -247,6 +293,14 @@ const modalStyles = StyleSheet.create({
     paddingHorizontal: 12,
     fontSize: 13,
   },
+  gpsIconButton: {
+    backgroundColor: '#0d6efd',
+    paddingHorizontal: 14,
+    height: 42,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   searchLoader: {
     position: 'absolute',
     right: 12,
@@ -263,10 +317,11 @@ const modalStyles = StyleSheet.create({
     padding: 10,
     borderBottomWidth: 1,
   },
-  selectedText: {
-    fontSize: 12,
-    fontWeight: '700',
-    marginBottom: 4,
+  targetBadge: {
+    backgroundColor: 'rgba(13, 110, 253, 0.12)',
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 6,
   },
   pillGroup: {
     flexDirection: 'row',
@@ -324,4 +379,4 @@ const modalStyles = StyleSheet.create({
     alignItems: 'center',
   },
 });
-    
+                                                                             
