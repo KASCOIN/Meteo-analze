@@ -1,12 +1,12 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Linking, Platform, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Platform, StyleSheet } from 'react-native';
 
 export const Footer = ({ theme }) => {
   if (Platform.OS !== 'web') return null;
 
-  const EMAIL_ADDRESS = 'nwosu.kasie@gmail.com';
+  const EMAIL_ADDRESS = 'nwosukasie@gmail.com';
   const GITHUB_URL = 'https://github.com/KASCOIN';
-  const PORTFOLIO_URL = 'https://yourportfolio.com'; // <--- REPLACE WITH YOUR PORTFOLIO URL
+  const PORTFOLIO_URL = 'https://mazimum.onrender.com/';
 
   const handleOpenLink = (url) => {
     if (typeof window !== 'undefined') {
@@ -45,7 +45,7 @@ export const Footer = ({ theme }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Integrated Data Credits */}
+        {/* Data Credits */}
         <View style={footerStyles.creditsSection}>
           <Text style={[footerStyles.sectionHeader, { color: theme.textPrimary }]}>Data Credits & Attribution</Text>
           <TouchableOpacity onPress={() => handleOpenLink('https://open-meteo.com/')} style={footerStyles.creditItem}>
