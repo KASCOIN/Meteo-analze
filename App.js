@@ -19,7 +19,7 @@ import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
 import * as BackgroundFetch from 'expo-background-fetch';
 
-import { getTheme, CHART_CONFIG } from './src/constants/theme';
+import { getTheme } from './src/constants/theme';
 import { styles } from './src/styles/globalStyles';
 import { convertTemp } from './src/utils/unitConverters';
 import { getWMOWeather } from './src/utils/weatherHelpers';
@@ -28,7 +28,6 @@ import { fetchAndProcessClimateData } from './src/services/weatherEngine';
 import { fetchKiloAiWeatherSummary } from './src/services/aiEngine';
 
 import { WeatherHeroCard } from './src/components/WeatherHeroCard';
-import { TrendAnalysis } from './src/components/TrendAnalysis';
 import { ArchiveModal } from './src/components/ArchiveModal';
 import { NotificationModal } from './src/components/NotificationModal';
 import { SettingsModal } from './src/components/SettingsModal';
@@ -78,8 +77,6 @@ export default function App() {
     longitude: 3.37,
   });
 
-  const [activeTab, setActiveTab] = useState('thermal');
-  const [timeRange, setTimeRange] = useState('14d');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -106,16 +103,14 @@ export default function App() {
   const [notifyVars, setNotifyVars] = useState({ temp: true, precip: true, wind: true, uv: true });
 
   // Weather Payload & AI State
-  const [weatherPayload, setWeatherPayload] = useState({ current: null, forecast1Hr: null, forecast3Hr: null, dailySeries: [] });
+  const [weatherPayload, setWeatherPayload] = useState({ current: null, forecast1Hr: null, forecast3Hr: null });
   const [aiSummary, setAiSummary] = useState('');
   const [loading, setLoading] = useState(true);
-  const [isTrendLoading, setIsTrendLoading] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   const theme = getTheme(isDarkMode);
-  const chartConfig = CHART_CONFIG(isDarkMode, theme.cardBg);
 
   // Ticking Live Clock Timer (Updates every second)
   useEffect(() => {
@@ -126,7 +121,7 @@ export default function App() {
   // Continuous 1-Minute Underground Telemetry Polling + Kilo AI Call
   useEffect(() => {
     const pollInterval = setInterval(async () => {
-      const freshData = await fetchAndProcessClimateData(selectedLocation.latitude, selectedLocation.longitude, timeRange);
+      const freshData = await fetchAndProcessClimateData(selectedLocation.latitude, selectedLocation.longitude, '14d');
       setWeatherPayload((prev) => ({
         ...prev,
         current: freshData.current,
@@ -147,7 +142,7 @@ export default function App() {
     }, 60000);
 
     return () => clearInterval(pollInterval);
-  }, [selectedLocation, timeRange, tempUnit]);
+  }, [selectedLocation, tempUnit]);
 
   useEffect(() => {
     Animated.loop(
@@ -183,7 +178,7 @@ export default function App() {
     const loadData = async () => {
       setLoading(true);
       fadeAnim.setValue(0);
-      const data = await fetchAndProcessClimateData(selectedLocation.latitude, selectedLocation.longitude, timeRange);
+      const data = await fetchAndProcessClimateData(selectedLocation.latitude, selectedLocation.longitude, '14d');
       setWeatherPayload(data);
 
       if (data.current) {
@@ -208,18 +203,9 @@ export default function App() {
     loadData();
   }, [selectedLocation]);
 
-  const handleRangeChange = async (newRange) => {
-    if (newRange === timeRange) return;
-    setTimeRange(newRange);
-    setIsTrendLoading(true);
-    const data = await fetchAndProcessClimateData(selectedLocation.latitude, selectedLocation.longitude, newRange);
-    setWeatherPayload((prev) => ({ ...prev, dailySeries: data.dailySeries }));
-    setIsTrendLoading(false);
-  };
-
   const handleManualRefresh = async () => {
     setRefreshing(true);
-    const data = await fetchAndProcessClimateData(selectedLocation.latitude, selectedLocation.longitude, timeRange);
+    const data = await fetchAndProcessClimateData(selectedLocation.latitude, selectedLocation.longitude, '14d');
     setWeatherPayload(data);
     setRefreshing(false);
   };
@@ -350,7 +336,6 @@ export default function App() {
             </Text>
           </View>
 
-          {/* Top Action Nav Group with Direct Theme Switcher */}
           <View style={styles.actionNavGroup}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: 2 }}>
               <Text style={{ fontSize: 13 }}>{isDarkMode ? '🌙' : '☀️'}</Text>
@@ -441,57 +426,6 @@ export default function App() {
               aiSummary={aiSummary}
               isDarkMode={isDarkMode}
             />
-
-            <View style={styles.trendHeaderCard}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <View>
-                  <Text style={[styles.trendHeading, { color: theme.textPrimary }]}>Climatological Trend Analysis</Text>
-                  <Text style={[styles.trendSubheading, { color: theme.textSecondary }]}>
-                    Data Horizon: {timeRange.toUpperCase()} ({weatherPayload.dailySeries.length} Records)
-                  </Text>
-                </View>
-                {isTrendLoading && <ActivityIndicator size="small" color="#0d6efd" />}
-              </View>
-
-              <View style={[styles.rangePillGroup, { backgroundColor: isDarkMode ? '#222' : '#e9ecef' }]}>
-                {['14d', '1m', '6m', '1y', '3y'].map((rk) => (
-                  <TouchableOpacity
-                    key={rk}
-                    style={[styles.rangePill, timeRange === rk && styles.rangePillActive]}
-                    onPress={() => handleRangeChange(rk)}
-                  >
-                    <Text style={[styles.rangePillText, timeRange === rk && styles.rangePillActiveText]}>
-                      {rk.toUpperCase()}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            <View style={[styles.tabBar, { backgroundColor: isDarkMode ? '#222' : '#e9ecef' }]}>
-              {['thermal', 'hydro', 'wind', 'solar'].map((tabKey) => (
-                <TouchableOpacity
-                  key={tabKey}
-                  style={[styles.tab, activeTab === tabKey && { backgroundColor: theme.cardBg }]}
-                  onPress={() => setActiveTab(tabKey)}
-                >
-                  <Text style={[styles.tabText, { color: activeTab === tabKey ? '#0d6efd' : theme.textSecondary }]}>
-                    {tabKey === 'thermal' ? 'Thermal' : tabKey === 'hydro' ? 'Hydrology' : tabKey === 'wind' ? 'Wind' : 'Solar/UV'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <TrendAnalysis
-              activeTab={activeTab}
-              dailySeries={weatherPayload.dailySeries}
-              isTrendLoading={isTrendLoading}
-              tempUnit={tempUnit}
-              speedUnit={speedUnit}
-              precipUnit={precipUnit}
-              theme={theme}
-              chartConfig={chartConfig}
-            />
           </Animated.View>
         )}
 
@@ -541,9 +475,10 @@ export default function App() {
           theme={theme}
         />
 
-        {/* Footer with Contact Links & Attribution */}
+        {/* Web-Only Footer */}
         <Footer theme={theme} onOpenAbout={() => setIsAboutOpen(true)} />
       </ScrollView>
     </View>
   );
-            }
+}
+  
