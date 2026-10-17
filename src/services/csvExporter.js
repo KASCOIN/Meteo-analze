@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { getDateRange } from '../utils/weatherHelpers';
@@ -14,7 +15,7 @@ export const exportArchiveCSV = async ({ location, range, granularity, variables
   if (variables.solar) params.push('shortwave_radiation_sum');
   if (variables.evapotranspiration) params.push('et0_fao_evapotranspiration');
 
-  if (params.length === 0) throw new Error('Select at least one variable.');
+  if (params.length === 0) throw new Error('Select at least one variable to export.');
 
   let fetchUrl = '';
   if (granularity === 'hourly') {
@@ -25,6 +26,7 @@ export const exportArchiveCSV = async ({ location, range, granularity, variables
   }
 
   const res = await fetch(fetchUrl);
+  if (!res.ok) throw new Error('Failed to fetch data from Open-Meteo archive API.');
   const csvData = await res.json();
 
   let timeArray = [];
@@ -38,7 +40,7 @@ export const exportArchiveCSV = async ({ location, range, granularity, variables
     dataObject = csvData.daily;
   }
 
-  if (!timeArray || timeArray.length === 0) throw new Error('No records returned.');
+  if (!timeArray || timeArray.length === 0) throw new Error('No weather records were returned for this range.');
 
   const keys = Object.keys(dataObject);
   let csvContent = `Location,${location.name} (${lat}°N ${lon}°E)\n`;
@@ -52,19 +54,31 @@ export const exportArchiveCSV = async ({ location, range, granularity, variables
   }
 
   const fileName = `Climate_${location.name.replace(/\s+/g, '_')}_${startDate}_to_${endDate}.csv`;
-  const fileUri = `${FileSystem.documentDirectory}${fileName}`;
 
-  await FileSystem.writeAsStringAsync(fileUri, csvContent, {
-    encoding: FileSystem.EncodingType.UTF8,
-  });
-
-  if (await Sharing.isAvailableAsync()) {
-    await Sharing.shareAsync(fileUri, {
-      mimeType: 'text/csv',
-      dialogTitle: 'Save Meteorological Dataset',
-      UTI: 'public.comma-separated-values-text',
+  if (Platform.OS === 'web') {
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.setAttribute('download', fileName);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } else {
+    const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+    await FileSystem.writeAsStringAsync(fileUri, csvContent, {
+      encoding: FileSystem.EncodingType.UTF8,
     });
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(fileUri, {
+        mimeType: 'text/csv',
+        dialogTitle: 'Save Meteorological Dataset',
+        UTI: 'public.comma-separated-values-text',
+      });
+    }
   }
 
   return timeArray.length;
 };
+  
