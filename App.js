@@ -7,6 +7,7 @@ import {
   TextInput,
   TouchableOpacity,
   Switch,
+  Modal,
   Animated,
   Easing,
   RefreshControl,
@@ -31,7 +32,6 @@ import { WeatherHeroCard } from './src/components/WeatherHeroCard';
 import { ArchiveModal } from './src/components/ArchiveModal';
 import { NotificationModal } from './src/components/NotificationModal';
 import { SettingsModal } from './src/components/SettingsModal';
-import { AboutModal } from './src/components/AboutModal';
 import { Footer } from './src/components/Footer';
 
 const BACKGROUND_WEATHER_TASK = 'BACKGROUND_WEATHER_TASK';
@@ -90,10 +90,10 @@ export default function App() {
   const [precipUnit, setPrecipUnit] = useState('mm');
 
   // Modals Visibility
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-  const [isAboutOpen, setIsAboutOpen] = useState(false);
 
   // Notifications State
   const [isNotifyEnabled, setIsNotifyEnabled] = useState(false);
@@ -112,13 +112,13 @@ export default function App() {
 
   const theme = getTheme(isDarkMode);
 
-  // Ticking Live Clock Timer (Updates every second)
+  // 1. Live Ticking Clock (1 second)
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Continuous 1-Minute Underground Telemetry Polling + Kilo AI Call
+  // 2. Continuous 1-Minute Underground Telemetry Polling
   useEffect(() => {
     const pollInterval = setInterval(async () => {
       const freshData = await fetchAndProcessClimateData(selectedLocation.latitude, selectedLocation.longitude, '14d');
@@ -325,9 +325,9 @@ export default function App() {
           <RefreshControl refreshing={refreshing} onRefresh={handleManualRefresh} tintColor="#0d6efd" colors={['#0d6efd']} />
         }
       >
-        {/* Header Section */}
+        {/* Header Section with Full Un-Truncated App Title */}
         <View style={styles.headerRow}>
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, marginRight: 8 }}>
             <Text style={[styles.header, { color: theme.textPrimary }]} numberOfLines={1}>
               Meteo Analaze ☁️
             </Text>
@@ -336,8 +336,9 @@ export default function App() {
             </Text>
           </View>
 
-          <View style={styles.actionNavGroup}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: 2 }}>
+          {/* Right Header Navigation Controls */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
               <Text style={{ fontSize: 13 }}>{isDarkMode ? '🌙' : '☀️'}</Text>
               <Switch
                 value={isDarkMode}
@@ -347,17 +348,17 @@ export default function App() {
               />
             </View>
 
-            <TouchableOpacity style={[styles.navButton, { backgroundColor: '#198754' }]} onPress={() => setIsArchiveOpen(true)}>
-              <Text style={styles.navButtonText}>📊 Archive</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={[styles.navButton, { backgroundColor: '#0d6efd' }]} onPress={() => setIsSettingsOpen(true)}>
-              <Text style={styles.navButtonText}>⚙️ Settings</Text>
+            {/* Hamburger Menu Trigger Button */}
+            <TouchableOpacity
+              style={[styles.navButton, { backgroundColor: '#0d6efd', paddingHorizontal: 12, height: 38 }]}
+              onPress={() => setIsMenuOpen(true)}
+            >
+              <Text style={styles.navButtonText}>☰</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Search & "Me" Location Button */}
+        {/* Search & "Me" Button */}
         <View style={styles.searchRow}>
           <View style={styles.searchSection}>
             <TextInput
@@ -429,6 +430,59 @@ export default function App() {
           </Animated.View>
         )}
 
+        {/* Hamburger Navigation Modal */}
+        <Modal visible={isMenuOpen} transparent animationType="fade" onRequestClose={() => setIsMenuOpen(false)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+            <View style={{ width: '100%', maxWidth: 360, backgroundColor: theme.cardBg, borderRadius: 18, padding: 20 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <Text style={{ fontSize: 18, fontWeight: '800', color: theme.textPrimary }}>☰ Navigation Menu</Text>
+                <TouchableOpacity onPress={() => setIsMenuOpen(false)}>
+                  <Text style={{ fontSize: 22, color: theme.textSecondary, fontWeight: 'bold' }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={{ gap: 10, marginBottom: 10 }}>
+                <TouchableOpacity
+                  style={{ backgroundColor: '#198754', paddingVertical: 12, borderRadius: 12, alignItems: 'center' }}
+                  onPress={() => {
+                    setIsMenuOpen(false);
+                    setIsArchiveOpen(true);
+                  }}
+                >
+                  <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 15 }}>📊 Climate Data Archive</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{ backgroundColor: '#0d6efd', paddingVertical: 12, borderRadius: 12, alignItems: 'center' }}
+                  onPress={() => {
+                    setIsMenuOpen(false);
+                    setIsSettingsOpen(true);
+                  }}
+                >
+                  <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 15 }}>⚙️ System Settings</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{ backgroundColor: notifyBadgeColor, paddingVertical: 12, borderRadius: 12, alignItems: 'center' }}
+                  onPress={() => {
+                    setIsMenuOpen(false);
+                    setIsNotificationOpen(true);
+                  }}
+                >
+                  <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 15 }}>🔔 Configure Alerts</Text>
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                style={{ backgroundColor: theme.borderColor, paddingVertical: 10, borderRadius: 10, alignItems: 'center', marginTop: 6 }}
+                onPress={() => setIsMenuOpen(false)}
+              >
+                <Text style={{ color: theme.textPrimary, fontWeight: 'bold' }}>Close Menu</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
         <ArchiveModal
           isOpen={isArchiveOpen}
           onClose={() => setIsArchiveOpen(false)}
@@ -465,20 +519,13 @@ export default function App() {
           precipUnit={precipUnit}
           setPrecipUnit={setPrecipUnit}
           onOpenAlerts={() => setIsNotificationOpen(true)}
-          onOpenAbout={() => setIsAboutOpen(true)}
           theme={theme}
         />
 
-        <AboutModal
-          isOpen={isAboutOpen}
-          onClose={() => setIsAboutOpen(false)}
-          theme={theme}
-        />
-
-        {/* Web-Only Footer */}
-        <Footer theme={theme} onOpenAbout={() => setIsAboutOpen(true)} />
+        {/* Web-Only Professional Footer */}
+        <Footer theme={theme} />
       </ScrollView>
     </View>
   );
-}
-  
+    }
+        
