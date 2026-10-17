@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   TextInput,
   TouchableOpacity,
+  Switch,
   Animated,
   Easing,
   RefreshControl,
@@ -32,6 +33,7 @@ import { ArchiveModal } from './src/components/ArchiveModal';
 import { NotificationModal } from './src/components/NotificationModal';
 import { SettingsModal } from './src/components/SettingsModal';
 import { AboutModal } from './src/components/AboutModal';
+import { Footer } from './src/components/Footer';
 
 const BACKGROUND_WEATHER_TASK = 'BACKGROUND_WEATHER_TASK';
 
@@ -51,7 +53,7 @@ if (Platform.OS !== 'web') {
         const currWmo = getWMOWeather(data.current.weatherCode);
         await Notifications.scheduleNotificationAsync({
           content: {
-            title: '📍 MaziCli Atmospheric Alert',
+            title: '📍 Meteo Analaze Alert',
             body: `Background Check: ${currWmo.icon} ${currWmo.desc} | Temp: ${data.current.temp}°C`,
             sound: true,
           },
@@ -115,13 +117,13 @@ export default function App() {
   const theme = getTheme(isDarkMode);
   const chartConfig = CHART_CONFIG(isDarkMode, theme.cardBg);
 
-  // 1. Ticking Live Clock Timer (Updates every second)
+  // Ticking Live Clock Timer (Updates every second)
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // 2. Continuous 1-Minute Underground Telemetry Polling + Kilo AI Call
+  // Continuous 1-Minute Underground Telemetry Polling + Kilo AI Call
   useEffect(() => {
     const pollInterval = setInterval(async () => {
       const freshData = await fetchAndProcessClimateData(selectedLocation.latitude, selectedLocation.longitude, timeRange);
@@ -337,13 +339,29 @@ export default function App() {
           <RefreshControl refreshing={refreshing} onRefresh={handleManualRefresh} tintColor="#0d6efd" colors={['#0d6efd']} />
         }
       >
+        {/* Header Section */}
         <View style={styles.headerRow}>
-          <View>
-            <Text style={[styles.header, { color: theme.textPrimary }]}>MaziCli Suite</Text>
-            <Text style={[styles.subHeader, { color: theme.textSecondary }]}>Atmospheric Research Portal</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.header, { color: theme.textPrimary }]} numberOfLines={1}>
+              Meteo Analaze ☁️
+            </Text>
+            <Text style={[styles.subHeader, { color: theme.textSecondary }]}>
+              Atmospheric Research Portal
+            </Text>
           </View>
 
+          {/* Top Action Nav Group with Direct Theme Switcher */}
           <View style={styles.actionNavGroup}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: 2 }}>
+              <Text style={{ fontSize: 13 }}>{isDarkMode ? '🌙' : '☀️'}</Text>
+              <Switch
+                value={isDarkMode}
+                onValueChange={setIsDarkMode}
+                trackColor={{ false: '#767577', true: '#0d6efd' }}
+                thumbColor={isDarkMode ? '#ffffff' : '#f4f3f4'}
+              />
+            </View>
+
             <TouchableOpacity style={[styles.navButton, { backgroundColor: '#198754' }]} onPress={() => setIsArchiveOpen(true)}>
               <Text style={styles.navButtonText}>📊 Archive</Text>
             </TouchableOpacity>
@@ -354,6 +372,7 @@ export default function App() {
           </View>
         </View>
 
+        {/* Search & "Me" Location Button */}
         <View style={styles.searchRow}>
           <View style={styles.searchSection}>
             <TextInput
@@ -371,7 +390,7 @@ export default function App() {
               <ActivityIndicator size="small" color="#ffffff" />
             ) : (
               <Animated.Text style={[styles.gpsButtonText, { transform: [{ scale: pulseAnim }] }]}>
-                📍 GPS
+                📍 Me
               </Animated.Text>
             )}
           </TouchableOpacity>
@@ -521,8 +540,10 @@ export default function App() {
           onClose={() => setIsAboutOpen(false)}
           theme={theme}
         />
+
+        {/* Footer with Contact Links & Attribution */}
+        <Footer theme={theme} onOpenAbout={() => setIsAboutOpen(true)} />
       </ScrollView>
     </View>
   );
             }
-    
