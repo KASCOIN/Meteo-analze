@@ -24,6 +24,7 @@ import { convertTemp } from './src/utils/unitConverters';
 import { getWMOWeather } from './src/utils/weatherHelpers';
 import { searchLocations } from './src/services/geocodingEngine';
 import { fetchAndProcessClimateData } from './src/services/weatherEngine';
+import { fetchKiloAiWeatherSummary } from './src/services/aiEngine';
 
 import { WeatherHeroCard } from './src/components/WeatherHeroCard';
 import { TrendAnalysis } from './src/components/TrendAnalysis';
@@ -102,8 +103,9 @@ export default function App() {
   const [notifyBadgeColor, setNotifyBadgeColor] = useState('#0d6efd');
   const [notifyVars, setNotifyVars] = useState({ temp: true, precip: true, wind: true, uv: true });
 
-  // Weather Payload
+  // Weather Payload & AI State
   const [weatherPayload, setWeatherPayload] = useState({ current: null, forecast1Hr: null, forecast3Hr: null, dailySeries: [] });
+  const [aiSummary, setAiSummary] = useState('');
   const [loading, setLoading] = useState(true);
   const [isTrendLoading, setIsTrendLoading] = useState(false);
 
@@ -119,7 +121,7 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // 2. Continuous 1-Minute Underground Telemetry Polling
+  // 2. Continuous 1-Minute Underground Telemetry Polling + Kilo AI Call
   useEffect(() => {
     const pollInterval = setInterval(async () => {
       const freshData = await fetchAndProcessClimateData(selectedLocation.latitude, selectedLocation.longitude, timeRange);
@@ -129,10 +131,21 @@ export default function App() {
         forecast1Hr: freshData.forecast1Hr,
         forecast3Hr: freshData.forecast3Hr,
       }));
+
+      if (freshData.current) {
+        const wmo = getWMOWeather(freshData.current.weatherCode);
+        const aiText = await fetchKiloAiWeatherSummary({
+          locationName: selectedLocation.name,
+          current: freshData.current,
+          wmoDesc: wmo.desc,
+          tempUnit,
+        });
+        if (aiText) setAiSummary(aiText);
+      }
     }, 60000);
 
     return () => clearInterval(pollInterval);
-  }, [selectedLocation, timeRange]);
+  }, [selectedLocation, timeRange, tempUnit]);
 
   useEffect(() => {
     Animated.loop(
@@ -170,6 +183,18 @@ export default function App() {
       fadeAnim.setValue(0);
       const data = await fetchAndProcessClimateData(selectedLocation.latitude, selectedLocation.longitude, timeRange);
       setWeatherPayload(data);
+
+      if (data.current) {
+        const wmo = getWMOWeather(data.current.weatherCode);
+        const aiText = await fetchKiloAiWeatherSummary({
+          locationName: selectedLocation.name,
+          current: data.current,
+          wmoDesc: wmo.desc,
+          tempUnit,
+        });
+        if (aiText) setAiSummary(aiText);
+      }
+
       setLoading(false);
 
       Animated.timing(fadeAnim, {
@@ -292,7 +317,6 @@ export default function App() {
   const formattedLiveTime = currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   const formattedLiveDate = currentTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 
-  // Responsive Breakpoint Container Layout
   const containerMaxWidth = windowWidth > 1024 ? 900 : windowWidth > 768 ? 720 : '100%';
 
   return (
@@ -395,6 +419,7 @@ export default function App() {
               speedUnit={speedUnit}
               liveDate={formattedLiveDate}
               liveTime={formattedLiveTime}
+              aiSummary={aiSummary}
               isDarkMode={isDarkMode}
             />
 
@@ -499,5 +524,5 @@ export default function App() {
       </ScrollView>
     </View>
   );
-    }
-                                                    
+            }
+    
