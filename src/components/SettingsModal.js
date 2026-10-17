@@ -17,9 +17,9 @@ export const SettingsModal = ({
 }) => {
   if (!isOpen) return null;
 
-  const EMAIL_ADDRESS = 'nwosu.kasie@gmail.com';
+  const EMAIL_ADDRESS = 'nwosukasie@gmail.com';
   const GITHUB_URL = 'https://github.com/KASCOIN';
-  const PORTFOLIO_URL = 'https://yourportfolio.com'; // <--- REPLACE WITH YOUR PORTFOLIO URL
+  const PORTFOLIO_URL = 'https://mazimum.onrender.com/';
 
   const handleOpenLink = (url) => {
     if (Platform.OS === 'web') {
@@ -139,4 +139,4 @@ export const SettingsModal = ({
     </Modal>
   );
 };
-                            
+              
