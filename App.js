@@ -39,7 +39,6 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// Task running in background even when app is closed
 TaskManager.defineTask(BACKGROUND_WEATHER_TASK, async () => {
   try {
     const data = await fetchAndProcessClimateData(6.52, 3.37, '14d');
@@ -47,8 +46,8 @@ TaskManager.defineTask(BACKGROUND_WEATHER_TASK, async () => {
       const currWmo = getWMOWeather(data.current.weatherCode);
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: `📍 MaziCli Atmospheric Alert`,
-          body: `Background Check: ${currWmo.icon} ${currWmo.desc} | Temp: ${data.current.temp}°C | Wind: ${data.current.windSpeed} km/h`,
+          title: '📍 MaziCli Atmospheric Alert',
+          body: `Background Check: ${currWmo.icon} ${currWmo.desc} | Temp: ${data.current.temp}°C`,
           sound: true,
         },
         trigger: null,
@@ -123,13 +122,13 @@ export default function App() {
       const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_WEATHER_TASK);
       if (!isRegistered) {
         await BackgroundFetch.registerTaskAsync(BACKGROUND_WEATHER_TASK, {
-          minimumInterval: 15 * 60, // 15 minutes
+          minimumInterval: 15 * 60,
           stopOnTerminate: false,
           startOnBoot: true,
         });
       }
     } catch (err) {
-      console.log('Background task registration error:', err);
+      console.log('Background task error:', err);
     }
   };
 
@@ -170,7 +169,7 @@ export default function App() {
     try {
       const { status } = await Notifications.requestPermissionsAsync();
       if (status !== 'granted') {
-        alert('Notification permission denied in device settings.');
+        alert('Notification permission denied.');
         return;
       }
 
@@ -186,13 +185,13 @@ export default function App() {
       await Notifications.scheduleNotificationAsync({
         content: {
           title: `📍 ${notifyLocation.name} Live Alert`,
-          body: `Now: ${currWmo.icon} ${convertTemp(curr.temp, tempUnit)}°${tempUnit} | Next Hour (${fc1.time}): ${fc1Wmo.icon} ${fc1Wmo.desc} (Precip: ${fc1.precipProb}%)`,
+          body: `Now: ${currWmo.icon} ${convertTemp(curr.temp, tempUnit)}°${tempUnit} | Next Hour (${fc1.time}): ${fc1Wmo.icon} ${fc1Wmo.desc}`,
           sound: true,
         },
         trigger: null,
       });
 
-      alert('System push notification queued! Close the app to test background alerts.');
+      alert('System push notification sent!');
     } catch (err) {
       alert('Notification Error: ' + err.message);
     }
@@ -428,149 +427,4 @@ export default function App() {
       </ScrollView>
     </View>
   );
-}
-) : (
-              <Animated.Text style={[styles.gpsButtonText, { transform: [{ scale: pulseAnim }] }]}>
-                📍 GPS
-              </Animated.Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {searchResults.length > 0 && (
-          <View style={[styles.resultsContainer, { backgroundColor: theme.cardBg, borderColor: theme.borderColor }]}>
-            {searchResults.map((item) => (
-              <TouchableOpacity
-                key={`${item.id}-${item.latitude}-${item.longitude}`}
-                style={[styles.resultItem, { borderBottomColor: theme.borderColor }]}
-                onPress={() => {
-                  setSelectedLocation({
-                    name: item.name,
-                    country: item.country || item.admin1 || '',
-                    latitude: item.latitude,
-                    longitude: item.longitude,
-                  });
-                  setSearchQuery('');
-                  setSearchResults([]);
-                }}
-              >
-                <Text style={[styles.resultText, { color: theme.textPrimary }]}>
-                  <Text style={{ fontWeight: 'bold' }}>{item.name}</Text>
-                  {item.country ? ` (${item.country})` : ''}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-
-        {loading ? (
-          <View style={styles.loaderContainer}>
-            <ActivityIndicator size="large" color="#0d6efd" />
-            <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Retrieving atmospheric time-series...</Text>
-          </View>
-        ) : (
-          <Animated.View style={{ opacity: fadeAnim }}>
-            <WeatherHeroCard
-              location={selectedLocation}
-              current={weatherPayload.current}
-              forecast3Hr={weatherPayload.forecast3Hr}
-              pulseAnim={pulseAnim}
-              tempUnit={tempUnit}
-              speedUnit={speedUnit}
-            />
-
-            <View style={styles.trendHeaderCard}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <View>
-                  <Text style={[styles.trendHeading, { color: theme.textPrimary }]}>Climatological Trend Analysis</Text>
-                  <Text style={[styles.trendSubheading, { color: theme.textSecondary }]}>
-                    Data Horizon: {timeRange.toUpperCase()} ({weatherPayload.dailySeries.length} Records)
-                  </Text>
-                </View>
-                {isTrendLoading && <ActivityIndicator size="small" color="#0d6efd" />}
-              </View>
-
-              <View style={[styles.rangePillGroup, { backgroundColor: isDarkMode ? '#222' : '#e9ecef' }]}>
-                {['14d', '1m', '6m', '1y', '3y'].map((rk) => (
-                  <TouchableOpacity
-                    key={rk}
-                    style={[styles.rangePill, timeRange === rk && styles.rangePillActive]}
-                    onPress={() => handleRangeChange(rk)}
-                  >
-                    <Text style={[styles.rangePillText, timeRange === rk && styles.rangePillActiveText]}>
-                      {rk.toUpperCase()}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            <View style={[styles.tabBar, { backgroundColor: isDarkMode ? '#222' : '#e9ecef' }]}>
-              {['thermal', 'hydro', 'wind', 'solar'].map((tabKey) => (
-                <TouchableOpacity
-                  key={tabKey}
-                  style={[styles.tab, activeTab === tabKey && { backgroundColor: theme.cardBg }]}
-                  onPress={() => setActiveTab(tabKey)}
-                >
-                  <Text style={[styles.tabText, { color: activeTab === tabKey ? '#0d6efd' : theme.textSecondary }]}>
-                    {tabKey === 'thermal' ? 'Thermal' : tabKey === 'hydro' ? 'Hydrology' : tabKey === 'wind' ? 'Wind' : 'Solar/UV'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <TrendAnalysis
-              activeTab={activeTab}
-              dailySeries={weatherPayload.dailySeries}
-              isTrendLoading={isTrendLoading}
-              tempUnit={tempUnit}
-              speedUnit={speedUnit}
-              precipUnit={precipUnit}
-              theme={theme}
-              chartConfig={chartConfig}
-            />
-          </Animated.View>
-        )}
-
-        <ArchiveModal
-          isOpen={isArchiveOpen}
-          onClose={() => setIsArchiveOpen(false)}
-          defaultLocation={selectedLocation}
-          theme={theme}
-        />
-
-        <NotificationModal
-          isOpen={isNotificationOpen}
-          onClose={() => setIsNotificationOpen(false)}
-          isEnabled={isNotifyEnabled}
-          setIsEnabled={setIsNotifyEnabled}
-          location={notifyLocation}
-          setLocation={setNotifyLocation}
-          intervalMin={notifyIntervalMin}
-          setIntervalMin={setNotifyIntervalMin}
-          badgeColor={notifyBadgeColor}
-          setBadgeColor={setNotifyBadgeColor}
-          vars={notifyVars}
-          setVars={setNotifyVars}
-          onTestTrigger={triggerNotificationCheck}
-          theme={theme}
-        />
-
-        <SettingsModal
-          isOpen={isSettingsOpen}
-          onClose={() => setIsSettingsOpen(false)}
-          isDarkMode={isDarkMode}
-          setIsDarkMode={setIsDarkMode}
-          tempUnit={tempUnit}
-          setTempUnit={setTempUnit}
-          speedUnit={speedUnit}
-          setSpeedUnit={setSpeedUnit}
-          precipUnit={precipUnit}
-          setPrecipUnit={setPrecipUnit}
-          theme={theme}
-        />
-      </ScrollView>
-    </View>
-  );
-    }
-        
+          }
