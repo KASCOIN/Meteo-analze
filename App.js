@@ -71,8 +71,8 @@ export default function App() {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   const [selectedLocation, setSelectedLocation] = useState({
-    name: 'Lagos',
-    country: 'Nigeria',
+    name: 'Current Position',
+    country: 'GPS',
     latitude: 6.52,
     longitude: 3.37,
   });
@@ -112,13 +112,34 @@ export default function App() {
 
   const theme = getTheme(isDarkMode);
 
-  // 1. Live Ticking Clock (1 second)
+  // 1. Ticking Live Clock Timer (Updates every second)
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // 2. Continuous 1-Minute Underground Telemetry Polling
+  // 2. On-load GPS Automatic Position Fetching
+  useEffect(() => {
+    const initUserLocation = async () => {
+      try {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          let pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          setSelectedLocation({
+            name: 'Current Location',
+            country: 'GPS Position',
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          });
+        }
+      } catch (err) {
+        // Fallback default coordinates
+      }
+    };
+    initUserLocation();
+  }, []);
+
+  // 3. Continuous 1-Minute Underground Telemetry Polling
   useEffect(() => {
     const pollInterval = setInterval(async () => {
       const freshData = await fetchAndProcessClimateData(selectedLocation.latitude, selectedLocation.longitude, '14d');
@@ -205,9 +226,13 @@ export default function App() {
 
   const handleManualRefresh = async () => {
     setRefreshing(true);
-    const data = await fetchAndProcessClimateData(selectedLocation.latitude, selectedLocation.longitude, '14d');
-    setWeatherPayload(data);
-    setRefreshing(false);
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.location.reload();
+    } else {
+      const data = await fetchAndProcessClimateData(selectedLocation.latitude, selectedLocation.longitude, '14d');
+      setWeatherPayload(data);
+      setRefreshing(false);
+    }
   };
 
   const triggerNotificationCheck = async () => {
@@ -325,7 +350,7 @@ export default function App() {
           <RefreshControl refreshing={refreshing} onRefresh={handleManualRefresh} tintColor="#0d6efd" colors={['#0d6efd']} />
         }
       >
-        {/* Header Section with Full Un-Truncated App Title */}
+        {/* Header Section */}
         <View style={styles.headerRow}>
           <View style={{ flex: 1, marginRight: 8 }}>
             <Text style={[styles.header, { color: theme.textPrimary }]} numberOfLines={1}>
@@ -336,7 +361,6 @@ export default function App() {
             </Text>
           </View>
 
-          {/* Right Header Navigation Controls */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
               <Text style={{ fontSize: 13 }}>{isDarkMode ? '🌙' : '☀️'}</Text>
@@ -348,7 +372,6 @@ export default function App() {
               />
             </View>
 
-            {/* Hamburger Menu Trigger Button */}
             <TouchableOpacity
               style={[styles.navButton, { backgroundColor: '#0d6efd', paddingHorizontal: 12, height: 38 }]}
               onPress={() => setIsMenuOpen(true)}
@@ -527,5 +550,4 @@ export default function App() {
       </ScrollView>
     </View>
   );
-    }
-        
+}
