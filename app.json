@@ -1,32 +1,35 @@
 {
   "expo": {
-    "name": "MaziCli",                    
-    "slug": "mazimum",                        
-    "version": "1.0.0",                                 
+    "name": "MaziCli",
+    "slug": "mazimum",
+    "owner": "mazi2s-team",
+    "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",                       
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/splash.png",                  
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
       "backgroundColor": "#0d6efd"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourname.climateanalyzer" 
+      "bundleIdentifier": "com.mazimum.climateanalyzer"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.png",
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0d6efd"
       },
-      "package": "com.mazimum.climateanalyzer"          
+      "package": "com.mazimum.climateanalyzer"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "extra": {
       "eas": {
-        "projectId": "1877b092-86f9-4fc4-ae1b-f7cc61990aac"              }
+        "projectId": "1877b092-86f9-4fc4-ae1b-f7cc61990aac"
+      }
     }
   }
-  }
+}
