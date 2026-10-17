@@ -9,6 +9,9 @@ import {
   Animated,
   Easing,
   RefreshControl,
+  Platform,
+  useWindowDimensions,
+  StyleSheet,
 } from 'react-native';
 
 import * as Location from 'expo-location';
@@ -18,7 +21,7 @@ import * as BackgroundFetch from 'expo-background-fetch';
 
 import { getTheme, CHART_CONFIG } from './src/constants/theme';
 import { styles } from './src/styles/globalStyles';
-import { convertTemp, convertSpeed } from './src/utils/unitConverters';
+import { convertTemp } from './src/utils/unitConverters';
 import { getWMOWeather } from './src/utils/weatherHelpers';
 import { searchLocations } from './src/services/geocodingEngine';
 import { fetchAndProcessClimateData } from './src/services/weatherEngine';
@@ -31,35 +34,40 @@ import { SettingsModal } from './src/components/SettingsModal';
 
 const BACKGROUND_WEATHER_TASK = 'BACKGROUND_WEATHER_TASK';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
 
-TaskManager.defineTask(BACKGROUND_WEATHER_TASK, async () => {
-  try {
-    const data = await fetchAndProcessClimateData(6.52, 3.37, '14d');
-    if (data.current) {
-      const currWmo = getWMOWeather(data.current.weatherCode);
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: '📍 MaziCli Atmospheric Alert',
-          body: `Background Check: ${currWmo.icon} ${currWmo.desc} | Temp: ${data.current.temp}°C`,
-          sound: true,
-        },
-        trigger: null,
-      });
+  TaskManager.defineTask(BACKGROUND_WEATHER_TASK, async () => {
+    try {
+      const data = await fetchAndProcessClimateData(6.52, 3.37, '14d');
+      if (data.current) {
+        const currWmo = getWMOWeather(data.current.weatherCode);
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: '📍 MaziCli Atmospheric Alert',
+            body: `Background Check: ${currWmo.icon} ${currWmo.desc} | Temp: ${data.current.temp}°C`,
+            sound: true,
+          },
+          trigger: null,
+        });
+      }
+      return BackgroundFetch.BackgroundFetchResult.NewData;
+    } catch (error) {
+      return BackgroundFetch.BackgroundFetchResult.Failed;
     }
-    return BackgroundFetch.BackgroundFetchResult.NewData;
-  } catch (error) {
-    return BackgroundFetch.BackgroundFetchResult.Failed;
-  }
-});
+  });
+}
 
 export default function App() {
+  const { width: windowWidth } = useWindowDimensions();
+  const [currentTime, setCurrentTime] = useState(new Date());
+
   const [selectedLocation, setSelectedLocation] = useState({
     name: 'Lagos',
     country: 'Nigeria',
@@ -75,25 +83,25 @@ export default function App() {
   const [isLocating, setIsLocating] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Theme & Preferences
+  // Preferences
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [tempUnit, setTempUnit] = useState('C');
   const [speedUnit, setSpeedUnit] = useState('kmh');
   const [precipUnit, setPrecipUnit] = useState('mm');
 
-  // Modals Visibility
+  // Modals
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
-  // Notifications State
+  // Notifications
   const [isNotifyEnabled, setIsNotifyEnabled] = useState(false);
   const [notifyLocation, setNotifyLocation] = useState(selectedLocation);
   const [notifyIntervalMin, setNotifyIntervalMin] = useState(60);
   const [notifyBadgeColor, setNotifyBadgeColor] = useState('#0d6efd');
   const [notifyVars, setNotifyVars] = useState({ temp: true, precip: true, wind: true, uv: true });
 
-  // Weather Payload & Loaders
+  // Weather Payload
   const [weatherPayload, setWeatherPayload] = useState({ current: null, forecast1Hr: null, forecast3Hr: null, dailySeries: [] });
   const [loading, setLoading] = useState(true);
   const [isTrendLoading, setIsTrendLoading] = useState(false);
@@ -104,17 +112,40 @@ export default function App() {
   const theme = getTheme(isDarkMode);
   const chartConfig = CHART_CONFIG(isDarkMode, theme.cardBg);
 
+  // 1. Ticking Clock Timer (1 second)
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // 2. Continuous 1-Minute Underground Telemetry Polling
+  useEffect(() => {
+    const pollInterval = setInterval(async () => {
+      const freshData = await fetchAndProcessClimateData(selectedLocation.latitude, selectedLocation.longitude, timeRange);
+      setWeatherPayload((prev) => ({
+        ...prev,
+        current: freshData.current,
+        forecast1Hr: freshData.forecast1Hr,
+        forecast3Hr: freshData.forecast3Hr,
+      }));
+    }, 60000); // 60 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [selectedLocation, timeRange]);
+
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.2, duration: 800, useNativeDriver: true, easing: Easing.ease }),
+        Animated.timing(pulseAnim, { toValue: 1.25, duration: 800, useNativeDriver: true, easing: Easing.ease }),
         Animated.timing(pulseAnim, { toValue: 1.0, duration: 800, useNativeDriver: true, easing: Easing.ease }),
       ])
     ).start();
   }, [pulseAnim]);
 
   useEffect(() => {
-    registerBackgroundSync();
+    if (Platform.OS !== 'web') {
+      registerBackgroundSync();
+    }
   }, []);
 
   const registerBackgroundSync = async () => {
@@ -167,31 +198,55 @@ export default function App() {
 
   const triggerNotificationCheck = async () => {
     try {
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== 'granted') {
-        alert('Notification permission denied.');
-        return;
+      if (Platform.OS === 'web') {
+        if (!('Notification' in window)) {
+          alert('This web browser does not support push notifications.');
+          return;
+        }
+        let perm = Notification.permission;
+        if (perm !== 'granted') {
+          perm = await Notification.requestPermission();
+        }
+        if (perm === 'granted') {
+          const data = await fetchAndProcessClimateData(notifyLocation.latitude, notifyLocation.longitude, '14d');
+          const curr = data.current;
+          if (curr) {
+            const currWmo = getWMOWeather(curr.weatherCode);
+            new Notification(`📍 ${notifyLocation.name} Live Alert`, {
+              body: `Now: ${currWmo.icon} ${convertTemp(curr.temp, tempUnit)}°${tempUnit} | ${currWmo.desc}`,
+            });
+            alert('Web browser push notification dispatched!');
+          }
+        } else {
+          alert('Notification permission was denied in browser settings.');
+        }
+      } else {
+        const { status } = await Notifications.requestPermissionsAsync();
+        if (status !== 'granted') {
+          alert('Notification permission denied in device settings.');
+          return;
+        }
+
+        const data = await fetchAndProcessClimateData(notifyLocation.latitude, notifyLocation.longitude, '14d');
+        const curr = data.current;
+        const fc1 = data.forecast1Hr;
+
+        if (!curr || !fc1) return;
+
+        const currWmo = getWMOWeather(curr.weatherCode);
+        const fc1Wmo = getWMOWeather(fc1.weatherCode);
+
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: `📍 ${notifyLocation.name} Live Alert`,
+            body: `Now: ${currWmo.icon} ${convertTemp(curr.temp, tempUnit)}°${tempUnit} | Next Hour (${fc1.time}): ${fc1Wmo.icon} ${fc1Wmo.desc}`,
+            sound: true,
+          },
+          trigger: null,
+        });
+
+        alert('System push notification queued!');
       }
-
-      const data = await fetchAndProcessClimateData(notifyLocation.latitude, notifyLocation.longitude, '14d');
-      const curr = data.current;
-      const fc1 = data.forecast1Hr;
-
-      if (!curr || !fc1) return;
-
-      const currWmo = getWMOWeather(curr.weatherCode);
-      const fc1Wmo = getWMOWeather(fc1.weatherCode);
-
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: `📍 ${notifyLocation.name} Live Alert`,
-          body: `Now: ${currWmo.icon} ${convertTemp(curr.temp, tempUnit)}°${tempUnit} | Next Hour (${fc1.time}): ${fc1Wmo.icon} ${fc1Wmo.desc}`,
-          sound: true,
-        },
-        trigger: null,
-      });
-
-      alert('System push notification sent!');
     } catch (err) {
       alert('Notification Error: ' + err.message);
     }
@@ -233,10 +288,16 @@ export default function App() {
     }
   };
 
+  const formattedLiveTime = currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const formattedLiveDate = currentTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+
+  // Dynamic Layout Widths for Mobile vs Tablet vs PC Desktop
+  const containerMaxWidth = windowWidth > 1024 ? 900 : windowWidth > 768 ? 720 : '100%';
+
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1, backgroundColor: theme.bg, alignItems: 'center' }}>
       <ScrollView
-        style={[styles.container, { backgroundColor: theme.bg }]}
+        style={[styles.container, { backgroundColor: theme.bg, width: '100%', maxWidth: containerMaxWidth, paddingHorizontal: 12 }]}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleManualRefresh} tintColor="#0d6efd" colors={['#0d6efd']} />
@@ -249,21 +310,11 @@ export default function App() {
           </View>
 
           <View style={styles.actionNavGroup}>
-            <TouchableOpacity
-              style={[styles.navButton, { backgroundColor: notifyBadgeColor }]}
-              onPress={() => setIsNotificationOpen(true)}
-            >
-              <Text style={styles.navButtonText}>🔔 Alerts</Text>
-            </TouchableOpacity>
-
             <TouchableOpacity style={[styles.navButton, { backgroundColor: '#198754' }]} onPress={() => setIsArchiveOpen(true)}>
               <Text style={styles.navButtonText}>📊 Archive</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.navButton, { backgroundColor: '#0d6efd' }]}
-              onPress={() => setIsSettingsOpen(true)}
-            >
+            <TouchableOpacity style={[styles.navButton, { backgroundColor: '#0d6efd' }]} onPress={() => setIsSettingsOpen(true)}>
               <Text style={styles.navButtonText}>⚙️ Settings</Text>
             </TouchableOpacity>
           </View>
@@ -332,6 +383,9 @@ export default function App() {
               pulseAnim={pulseAnim}
               tempUnit={tempUnit}
               speedUnit={speedUnit}
+              liveDate={formattedLiveDate}
+              liveTime={formattedLiveTime}
+              isDarkMode={isDarkMode}
             />
 
             <View style={styles.trendHeaderCard}>
@@ -422,9 +476,11 @@ export default function App() {
           setSpeedUnit={setSpeedUnit}
           precipUnit={precipUnit}
           setPrecipUnit={setPrecipUnit}
+          onOpenAlerts={() => setIsNotificationOpen(true)}
           theme={theme}
         />
       </ScrollView>
     </View>
   );
-          }
+    }
+          
