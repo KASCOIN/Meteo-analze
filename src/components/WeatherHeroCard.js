@@ -20,7 +20,6 @@ export const WeatherHeroCard = ({
   const wmo = getWMOWeather(current.weatherCode);
   const fc3Wmo = forecast3Hr ? getWMOWeather(forecast3Hr.weatherCode) : null;
 
-  // Determine Badge Color Based on Telemetry
   let aiBadgeColor = '#198754';
   if (current.humidity > 80 && current.weatherCode >= 50) {
     aiBadgeColor = '#fd7e14';
@@ -34,7 +33,7 @@ export const WeatherHeroCard = ({
 
   return (
     <View style={[styles.glassContainer, isDarkMode && styles.darkGlass]}>
-      {/* Top Header */}
+      {/* Location Header */}
       <View style={styles.topHeaderRow}>
         <View style={{ flex: 1, marginRight: 8 }}>
           <Text style={styles.locationTitle} numberOfLines={1}>
@@ -51,18 +50,18 @@ export const WeatherHeroCard = ({
         </View>
       </View>
 
-      {/* Main Meteorological Metrics */}
+      {/* Main Meteorological Metrics Grid */}
       <View style={styles.mainMetricsRow}>
-        <View style={styles.tempGroup}>
+        <View style={styles.tempLeftGroup}>
           <Text style={styles.weatherIcon}>{wmo.icon}</Text>
-          <Text style={styles.tempText}>
-            {convertTemp(current.temp, tempUnit)}°
-            <Text style={styles.unitText}>{tempUnit}</Text>
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+            <Text style={styles.tempValue}>{convertTemp(current.temp, tempUnit)}</Text>
+            <Text style={styles.tempUnitText}>°{tempUnit}</Text>
+          </View>
         </View>
 
-        <View style={styles.conditionGroup}>
-          <Text style={styles.conditionTitle}>{wmo.desc}</Text>
+        <View style={styles.conditionRightGroup}>
+          <Text style={styles.conditionTitle} numberOfLines={1}>{wmo.desc}</Text>
           <Text style={styles.subMetric}>Feels like: {convertTemp(current.temp + 1.2, tempUnit)}°{tempUnit}</Text>
           <Text style={styles.subMetric}>Humidity: {current.humidity}%</Text>
           <Text style={styles.subMetric}>Wind: {convertSpeed(current.windSpeed, speedUnit)} {speedUnit.toUpperCase()}</Text>
@@ -74,7 +73,7 @@ export const WeatherHeroCard = ({
         <View style={styles.forecastBox}>
           <Text style={styles.forecastHeader}>EXPECTED AT {forecast3Hr.time}</Text>
           <View style={styles.forecastRow}>
-            <Text style={{ fontSize: 20 }}>{fc3Wmo.icon}</Text>
+            <Text style={{ fontSize: 18 }}>{fc3Wmo.icon}</Text>
             <Text style={styles.forecastText}>
               {convertTemp(forecast3Hr.temp, tempUnit)}°{tempUnit} — {fc3Wmo.desc}
             </Text>
@@ -85,7 +84,7 @@ export const WeatherHeroCard = ({
         </View>
       )}
 
-      {/* Real-time Kilo AI Weather Advisory Panel */}
+      {/* Real-time Kilo AI Weather Advisory */}
       <View style={[styles.aiPanel, { borderLeftColor: aiBadgeColor }]}>
         <View style={styles.aiHeaderRow}>
           <Text style={styles.aiTagText}>🤖 KILO AI WEATHER ADVISORY</Text>
@@ -98,10 +97,10 @@ export const WeatherHeroCard = ({
 
 const styles = StyleSheet.create({
   glassContainer: {
-    backgroundColor: 'rgba(13, 110, 253, 0.90)',
-    borderRadius: 24,
-    padding: 20,
-    marginVertical: 12,
+    backgroundColor: 'rgba(13, 110, 253, 0.92)',
+    borderRadius: 22,
+    padding: 18,
+    marginVertical: 10,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
     ...Platform.select({
@@ -114,23 +113,22 @@ const styles = StyleSheet.create({
     }),
   },
   darkGlass: {
-    backgroundColor: 'rgba(20, 28, 45, 0.92)',
+    backgroundColor: 'rgba(20, 28, 45, 0.95)',
     borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   topHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 14,
+    marginBottom: 12,
   },
   locationTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '800',
     color: '#ffffff',
-    letterSpacing: 0.3,
   },
   liveClockText: {
-    fontSize: 13,
+    fontSize: 12,
     color: 'rgba(255, 255, 255, 0.85)',
     marginTop: 2,
     fontWeight: '500',
@@ -143,110 +141,116 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.22)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-    gap: 6,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: 16,
+    gap: 5,
   },
   liveDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
     backgroundColor: '#00ff88',
   },
   liveBadgeText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '900',
     color: '#ffffff',
-    letterSpacing: 0.8,
+    letterSpacing: 0.6,
   },
   mainMetricsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justify: 'space-between',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 6,
+    gap: 10,
   },
-  tempGroup: {
+  tempLeftGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+    flexShrink: 1,
   },
   weatherIcon: {
-    fontSize: 42,
+    fontSize: 36,
   },
-  tempText: {
-    fontSize: 44,
+  tempValue: {
+    fontSize: 32,
     fontWeight: '900',
     color: '#ffffff',
+    lineHeight: 38,
   },
-  unitText: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  conditionGroup: {
-    alignItems: 'flex-end',
-  },
-  conditionTitle: {
+  tempUnitText: {
     fontSize: 18,
     fontWeight: '700',
+    color: 'rgba(255, 255, 255, 0.85)',
+    marginLeft: 2,
+  },
+  conditionRightGroup: {
+    alignItems: 'flex-end',
+    flexShrink: 1,
+  },
+  conditionTitle: {
+    fontSize: 16,
+    fontWeight: '800',
     color: '#ffffff',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   subMetric: {
-    fontSize: 12,
+    fontSize: 11.5,
     color: 'rgba(255, 255, 255, 0.85)',
     fontWeight: '500',
+    lineHeight: 16,
   },
   forecastBox: {
     backgroundColor: 'rgba(0, 0, 0, 0.18)',
-    borderRadius: 14,
-    padding: 12,
-    marginTop: 12,
+    borderRadius: 12,
+    padding: 10,
+    marginTop: 10,
   },
   forecastHeader: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '800',
     color: 'rgba(255, 255, 255, 0.7)',
-    letterSpacing: 0.6,
-    marginBottom: 4,
+    letterSpacing: 0.5,
+    marginBottom: 2,
   },
   forecastRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
   },
   forecastText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: '#ffffff',
   },
   forecastSubText: {
-    fontSize: 12,
+    fontSize: 11,
     color: 'rgba(255, 255, 255, 0.8)',
   },
   aiPanel: {
     backgroundColor: 'rgba(255, 255, 255, 0.12)',
     borderRadius: 12,
-    padding: 12,
-    marginTop: 14,
+    padding: 10,
+    marginTop: 12,
     borderLeftWidth: 4,
   },
   aiHeaderRow: {
-    marginBottom: 4,
+    marginBottom: 2,
   },
   aiTagText: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '800',
     color: '#00f2fe',
     letterSpacing: 0.5,
   },
   aiAdvisoryBody: {
-    fontSize: 12.5,
+    fontSize: 12,
     color: '#ffffff',
-    lineHeight: 17,
+    lineHeight: 16,
     fontWeight: '500',
   },
 });
-        
+            
