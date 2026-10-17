@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "Climate Analytics Suite",                  // 1. CHANGE: The app name displayed on the phone home screen
+    "slug": "mazimum",                        // 2. CHANGE: Unique URL slug for Expo (lowercase, hyphenated)
+    "version": "1.0.0",                                // OPTIONAL: Your app version
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",                       // OPTIONAL: Path to your app icon image
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",                  // OPTIONAL: Path to splash screen image
+      "resizeMode": "contain",
+      "backgroundColor": "#0d6efd"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yourname.climateanalyzer" // 3. CHANGE: Unique iOS ID (e.g., com.faith.climateapp)
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0d6efd"
+      },
+      "package": "com.mazimum.climateanalyzer"          // 4. CHANGE: Unique Android package name (e.g., com.faith.climateapp)
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "1877b092-86f9-4fc4-ae1b-f7cc61990aac"         // 5. AUTO-FILLED or PASTE: EAS Project UUID from Expo dashboard
+      }
+    }
+  }
+  }
