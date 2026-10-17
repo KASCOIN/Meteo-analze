@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "MaziCli",
+    "name": "Meteo Analaze ☁️",
     "slug": "mazimum",
     "owner": "mazi2s-team",
     "version": "1.0.0",
@@ -16,7 +16,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow MaziCli to access your location for live weather updates."
+          "locationAlwaysAndWhenInUsePermission": "Allow Meteo Analaze to access your location for live weather updates."
         }
       ],
       [
@@ -46,7 +46,8 @@
       ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/icon.png",
+      "output": "static"
     },
     "extra": {
       "eas": {
