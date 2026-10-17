@@ -27,6 +27,8 @@ import { getWMOWeather } from './src/utils/weatherHelpers';
 import { searchLocations } from './src/services/geocodingEngine';
 import { fetchAndProcessClimateData } from './src/services/weatherEngine';
 import { fetchKiloAiWeatherSummary } from './src/services/aiEngine';
+import { saveUserPreferences, getUserPreferences } from './src/utils/storage';
+import { updateAndroidHomeScreenWidget } from './src/services/widgetEngine';
 
 import { WeatherHeroCard } from './src/components/WeatherHeroCard';
 import { ArchiveModal } from './src/components/ArchiveModal';
@@ -47,13 +49,14 @@ if (Platform.OS !== 'web') {
 
   TaskManager.defineTask(BACKGROUND_WEATHER_TASK, async () => {
     try {
-      const data = await fetchAndProcessClimateData(6.52, 3.37, '14d');
+      const savedNotifyLoc = await getUserPreferences('notify_location', { latitude: 6.52, longitude: 3.37, name: 'Lagos' });
+      const data = await fetchAndProcessClimateData(savedNotifyLoc.latitude, savedNotifyLoc.longitude, '14d');
       if (data.current) {
         const currWmo = getWMOWeather(data.current.weatherCode);
         await Notifications.scheduleNotificationAsync({
           content: {
-            title: '📍 Meteo Analaze Alert',
-            body: `Background Check: ${currWmo.icon} ${currWmo.desc} | Temp: ${data.current.temp}°C`,
+            title: `📍 ${savedNotifyLoc.name} Weather Alert`,
+            body: `${currWmo.icon} ${currWmo.desc} | Temp: ${data.current.temp}°C | Humidity: ${data.current.humidity}%`,
             sound: true,
           },
           trigger: null,
@@ -69,7 +72,6 @@ if (Platform.OS !== 'web') {
 export default function App() {
   const { width: windowWidth } = useWindowDimensions();
   const [currentTime, setCurrentTime] = useState(new Date());
-
   const touchStartY = useRef(0);
 
   const [selectedLocation, setSelectedLocation] = useState({
@@ -91,57 +93,81 @@ export default function App() {
   const [speedUnit, setSpeedUnit] = useState('kmh');
   const [precipUnit, setPrecipUnit] = useState('mm');
 
-  // Modals Visibility
+  // Modals
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
-  // Notifications State
+  // Notifications
   const [isNotifyEnabled, setIsNotifyEnabled] = useState(false);
   const [notifyLocation, setNotifyLocation] = useState(selectedLocation);
   const [notifyIntervalMin, setNotifyIntervalMin] = useState(60);
   const [notifyBadgeColor, setNotifyBadgeColor] = useState('#0d6efd');
   const [notifyVars, setNotifyVars] = useState({ temp: true, precip: true, wind: true, uv: true });
 
-  // Weather Payload & AI State
+  // Weather & AI
   const [weatherPayload, setWeatherPayload] = useState({ current: null, forecast1Hr: null, forecast3Hr: null });
   const [aiSummary, setAiSummary] = useState('');
   const [loading, setLoading] = useState(true);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
-
   const theme = getTheme(isDarkMode);
 
-  // 1. Ticking Live Clock Timer (Updates every second)
+  // 1. Ticking Live Clock
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // 2. On-load GPS Automatic Position Fetching
+  // 2. Load Persisted Preferences & Initialize Location
   useEffect(() => {
-    const initUserLocation = async () => {
-      try {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === 'granted') {
-          let pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-          setSelectedLocation({
-            name: 'Current Location',
-            country: 'GPS Position',
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-          });
-        }
-      } catch (err) {
-        // Fallback default coordinates
+    const restoreSettings = async () => {
+      const savedDark = await getUserPreferences('isDarkMode', false);
+      const savedTemp = await getUserPreferences('tempUnit', 'C');
+      const savedSpeed = await getUserPreferences('speedUnit', 'kmh');
+      const savedLoc = await getUserPreferences('selectedLocation', null);
+      const savedNotifyLoc = await getUserPreferences('notifyLocation', null);
+
+      setIsDarkMode(savedDark);
+      setTempUnit(savedTemp);
+      setSpeedUnit(savedSpeed);
+
+      if (savedNotifyLoc) setNotifyLocation(savedNotifyLoc);
+
+      if (savedLoc) {
+        setSelectedLocation(savedLoc);
+      } else {
+        try {
+          let { status } = await Location.requestForegroundPermissionsAsync();
+          if (status === 'granted') {
+            let pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+            const gpsLoc = {
+              name: 'My Location',
+              country: 'GPS',
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+            };
+            setSelectedLocation(gpsLoc);
+            setNotifyLocation(gpsLoc);
+          }
+        } catch (e) {}
       }
     };
-    initUserLocation();
+    restoreSettings();
   }, []);
 
-  // 3. Continuous 1-Minute Underground Telemetry Polling
+  // Save Preferences when changed
+  useEffect(() => {
+    saveUserPreferences('isDarkMode', isDarkMode);
+    saveUserPreferences('tempUnit', tempUnit);
+    saveUserPreferences('speedUnit', speedUnit);
+    saveUserPreferences('selectedLocation', selectedLocation);
+    saveUserPreferences('notifyLocation', notifyLocation);
+  }, [isDarkMode, tempUnit, speedUnit, selectedLocation, notifyLocation]);
+
+  // 3. Continuous 1-Minute Underground Telemetry Polling & Widget Updates
   useEffect(() => {
     const pollInterval = setInterval(async () => {
       const freshData = await fetchAndProcessClimateData(selectedLocation.latitude, selectedLocation.longitude, '14d');
@@ -161,6 +187,8 @@ export default function App() {
           tempUnit,
         });
         if (aiText) setAiSummary(aiText);
+
+        updateAndroidHomeScreenWidget(selectedLocation, freshData.current, wmo.desc);
       }
     }, 60000);
 
@@ -192,9 +220,7 @@ export default function App() {
           startOnBoot: true,
         });
       }
-    } catch (err) {
-      console.log('Background task error:', err);
-    }
+    } catch (err) {}
   };
 
   useEffect(() => {
@@ -213,6 +239,8 @@ export default function App() {
           tempUnit,
         });
         if (aiText) setAiSummary(aiText);
+
+        updateAndroidHomeScreenWidget(selectedLocation, data.current, wmo.desc);
       }
 
       setLoading(false);
@@ -237,7 +265,6 @@ export default function App() {
     }
   };
 
-  // Web Touch Pull-to-Refresh Gesture Listeners
   const handleTouchStartWeb = (e) => {
     if (Platform.OS === 'web' && e.touches?.[0]) {
       touchStartY.current = e.touches[0].clientY;
@@ -258,13 +285,11 @@ export default function App() {
     try {
       if (Platform.OS === 'web') {
         if (!('Notification' in window)) {
-          alert('This web browser does not support push notifications.');
+          alert('Web browser push notifications not supported.');
           return;
         }
         let perm = Notification.permission;
-        if (perm !== 'granted') {
-          perm = await Notification.requestPermission();
-        }
+        if (perm !== 'granted') perm = await Notification.requestPermission();
         if (perm === 'granted') {
           const data = await fetchAndProcessClimateData(notifyLocation.latitude, notifyLocation.longitude, '14d');
           const curr = data.current;
@@ -275,29 +300,23 @@ export default function App() {
             });
             alert('Web browser push notification dispatched!');
           }
-        } else {
-          alert('Notification permission was denied in browser settings.');
         }
       } else {
         const { status } = await Notifications.requestPermissionsAsync();
         if (status !== 'granted') {
-          alert('Notification permission denied in device settings.');
+          alert('Notification permission denied.');
           return;
         }
 
         const data = await fetchAndProcessClimateData(notifyLocation.latitude, notifyLocation.longitude, '14d');
         const curr = data.current;
-        const fc1 = data.forecast1Hr;
-
-        if (!curr || !fc1) return;
+        if (!curr) return;
 
         const currWmo = getWMOWeather(curr.weatherCode);
-        const fc1Wmo = getWMOWeather(fc1.weatherCode);
-
         await Notifications.scheduleNotificationAsync({
           content: {
             title: `📍 ${notifyLocation.name} Live Alert`,
-            body: `Now: ${currWmo.icon} ${convertTemp(curr.temp, tempUnit)}°${tempUnit} | Next Hour (${fc1.time}): ${fc1Wmo.icon} ${fc1Wmo.desc}`,
+            body: `Now: ${currWmo.icon} ${convertTemp(curr.temp, tempUnit)}°${tempUnit} | ${currWmo.desc}`,
             sound: true,
           },
           trigger: null,
@@ -333,12 +352,14 @@ export default function App() {
       }
 
       let pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      setSelectedLocation({
+      const myLoc = {
         name: 'Current Location',
         country: 'GPS Position',
         latitude: pos.coords.latitude,
         longitude: pos.coords.longitude,
-      });
+      };
+      setSelectedLocation(myLoc);
+      setNotifyLocation(myLoc);
     } catch (err) {
       alert('Could not access device GPS location.');
     } finally {
@@ -348,7 +369,6 @@ export default function App() {
 
   const formattedLiveTime = currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   const formattedLiveDate = currentTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-
   const containerMaxWidth = windowWidth > 1024 ? 900 : windowWidth > 768 ? 720 : '100%';
 
   return (
@@ -476,7 +496,7 @@ export default function App() {
           </Animated.View>
         )}
 
-        {/* Hamburger Navigation Modal */}
+        {/* Hamburger Menu */}
         <Modal visible={isMenuOpen} transparent animationType="fade" onRequestClose={() => setIsMenuOpen(false)}>
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
             <View style={{ width: '100%', maxWidth: 360, backgroundColor: theme.cardBg, borderRadius: 18, padding: 20 }}>
@@ -568,9 +588,8 @@ export default function App() {
           theme={theme}
         />
 
-        {/* Web-Only Professional Footer */}
         <Footer theme={theme} />
       </ScrollView>
     </View>
   );
-}
+                }
