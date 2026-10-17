@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, View, Text, TouchableOpacity, Switch, ScrollView } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, Switch, ScrollView, Linking, Platform } from 'react-native';
 
 export const SettingsModal = ({
   isOpen,
@@ -13,41 +13,58 @@ export const SettingsModal = ({
   precipUnit,
   setPrecipUnit,
   onOpenAlerts,
-  onOpenAbout,
   theme,
 }) => {
   if (!isOpen) return null;
 
+  const EMAIL_ADDRESS = 'nwosu.kasie@gmail.com';
+  const GITHUB_URL = 'https://github.com/KASCOIN';
+  const PORTFOLIO_URL = 'https://yourportfolio.com'; // <--- REPLACE WITH YOUR PORTFOLIO URL
+
+  const handleOpenLink = (url) => {
+    if (Platform.OS === 'web') {
+      window.open(url, '_blank');
+    } else {
+      Linking.openURL(url).catch((err) => alert('Could not open link: ' + err.message));
+    }
+  };
+
+  const handleSendEmail = () => {
+    const mailtoUrl = `mailto:${EMAIL_ADDRESS}?subject=Meteo%20Analaze%20Inquiry`;
+    if (Platform.OS === 'web') {
+      window.location.href = mailtoUrl;
+    } else {
+      Linking.openURL(mailtoUrl);
+    }
+  };
+
   return (
     <Modal visible={isOpen} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
-        <View style={{ width: '100%', maxWidth: 450, backgroundColor: theme.cardBg, borderRadius: 16, padding: 20, maxHeight: '85%' }}>
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+        <View style={{ width: '100%', maxWidth: 450, backgroundColor: theme.cardBg, borderRadius: 18, padding: 20, maxHeight: '88%' }}>
+          
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.textPrimary }}>⚙️ System Settings</Text>
-            <TouchableOpacity onPress={onClose}>
+            <Text style={{ fontSize: 20, fontWeight: '800', color: theme.textPrimary }}>⚙️ System Settings</Text>
+            <TouchableOpacity onPress={onClose} style={{ padding: 4 }}>
               <Text style={{ fontSize: 22, color: theme.textSecondary, fontWeight: 'bold' }}>✕</Text>
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={{ marginBottom: 16 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.borderColor }}>
-              <Text style={{ fontSize: 16, color: theme.textPrimary, fontWeight: '500' }}>Dark Theme</Text>
+          <ScrollView style={{ marginBottom: 14 }}>
+            {/* Theme Toggle */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.borderColor }}>
+              <Text style={{ fontSize: 15, color: theme.textPrimary, fontWeight: '600' }}>Dark Theme Mode</Text>
               <Switch value={isDarkMode} onValueChange={setIsDarkMode} trackColor={{ false: '#767577', true: '#0d6efd' }} />
             </View>
 
-            <View style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.borderColor }}>
-              <Text style={{ fontSize: 16, color: theme.textPrimary, fontWeight: '500', marginBottom: 8 }}>Temperature Unit</Text>
-              <View style={{ flexDirection: 'row', gap: 10 }}>
+            {/* Units Selection */}
+            <View style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.borderColor }}>
+              <Text style={{ fontSize: 14, color: theme.textPrimary, fontWeight: '600', marginBottom: 8 }}>Temperature Unit</Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
                 {['C', 'F', 'K'].map((u) => (
                   <TouchableOpacity
                     key={u}
-                    style={{
-                      flex: 1,
-                      paddingVertical: 8,
-                      borderRadius: 8,
-                      backgroundColor: tempUnit === u ? '#0d6efd' : theme.inputBg,
-                      alignItems: 'center',
-                    }}
+                    style={{ flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: tempUnit === u ? '#0d6efd' : theme.inputBg, alignItems: 'center' }}
                     onPress={() => setTempUnit(u)}
                   >
                     <Text style={{ color: tempUnit === u ? '#fff' : theme.textPrimary, fontWeight: 'bold' }}>°{u}</Text>
@@ -56,19 +73,13 @@ export const SettingsModal = ({
               </View>
             </View>
 
-            <View style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.borderColor }}>
-              <Text style={{ fontSize: 16, color: theme.textPrimary, fontWeight: '500', marginBottom: 8 }}>Wind Speed Unit</Text>
-              <View style={{ flexDirection: 'row', gap: 10 }}>
+            <View style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.borderColor }}>
+              <Text style={{ fontSize: 14, color: theme.textPrimary, fontWeight: '600', marginBottom: 8 }}>Wind Speed Unit</Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
                 {['kmh', 'ms', 'mph'].map((u) => (
                   <TouchableOpacity
                     key={u}
-                    style={{
-                      flex: 1,
-                      paddingVertical: 8,
-                      borderRadius: 8,
-                      backgroundColor: speedUnit === u ? '#0d6efd' : theme.inputBg,
-                      alignItems: 'center',
-                    }}
+                    style={{ flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: speedUnit === u ? '#0d6efd' : theme.inputBg, alignItems: 'center' }}
                     onPress={() => setSpeedUnit(u)}
                   >
                     <Text style={{ color: speedUnit === u ? '#fff' : theme.textPrimary, fontWeight: 'bold' }}>{u.toUpperCase()}</Text>
@@ -77,47 +88,46 @@ export const SettingsModal = ({
               </View>
             </View>
 
-            <View style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.borderColor }}>
-              <Text style={{ fontSize: 16, color: theme.textPrimary, fontWeight: '500', marginBottom: 8 }}>Precipitation Unit</Text>
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                {['mm', 'inch'].map((u) => (
-                  <TouchableOpacity
-                    key={u}
-                    style={{
-                      flex: 1,
-                      paddingVertical: 8,
-                      borderRadius: 8,
-                      backgroundColor: precipUnit === u ? '#0d6efd' : theme.inputBg,
-                      alignItems: 'center',
-                    }}
-                    onPress={() => setPrecipUnit(u)}
-                  >
-                    <Text style={{ color: precipUnit === u ? '#fff' : theme.textPrimary, fontWeight: 'bold' }}>{u.toUpperCase()}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            <View style={{ paddingVertical: 10, gap: 10 }}>
+            {/* Actions */}
+            <View style={{ paddingVertical: 12 }}>
               <TouchableOpacity
-                style={{ backgroundColor: '#0d6efd', paddingVertical: 12, borderRadius: 10, alignItems: 'center' }}
+                style={{ backgroundColor: '#0d6efd', paddingVertical: 11, borderRadius: 10, alignItems: 'center', marginBottom: 8 }}
                 onPress={() => {
                   onClose();
                   if (onOpenAlerts) onOpenAlerts();
                 }}
               >
-                <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 14 }}>🔔 Configure Atmospheric Alerts</Text>
+                <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 14 }}>🔔 Configure System Alerts</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* In-App Data Credits & Developer Info */}
+            <View style={{ borderTopWidth: 1, borderTopColor: theme.borderColor, paddingTop: 12 }}>
+              <Text style={{ fontSize: 13, fontWeight: '800', color: '#198754', letterSpacing: 0.5, marginBottom: 8 }}>
+                DATA CREDITS & DEVELOPER CONTACT
+              </Text>
+
+              <TouchableOpacity style={{ backgroundColor: theme.inputBg, padding: 10, borderRadius: 10, marginBottom: 6 }} onPress={handleSendEmail}>
+                <Text style={{ fontSize: 11, color: theme.textSecondary }}>Email Support</Text>
+                <Text style={{ fontSize: 13, fontWeight: 'bold', color: theme.textPrimary }}>✉️ {EMAIL_ADDRESS}</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={{ backgroundColor: '#198754', paddingVertical: 12, borderRadius: 10, alignItems: 'center' }}
-                onPress={() => {
-                  onClose();
-                  if (onOpenAbout) onOpenAbout();
-                }}
-              >
-                <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 14 }}>ℹ️ About Developer & Data Credits</Text>
+              <TouchableOpacity style={{ backgroundColor: theme.inputBg, padding: 10, borderRadius: 10, marginBottom: 6 }} onPress={() => handleOpenLink(PORTFOLIO_URL)}>
+                <Text style={{ fontSize: 11, color: theme.textSecondary }}>Developer Portfolio</Text>
+                <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#0d6efd' }}>🌐 View Portfolio ↗</Text>
               </TouchableOpacity>
+
+              <TouchableOpacity style={{ backgroundColor: theme.inputBg, padding: 10, borderRadius: 10, marginBottom: 8 }} onPress={() => handleOpenLink(GITHUB_URL)}>
+                <Text style={{ fontSize: 11, color: theme.textSecondary }}>Source Code</Text>
+                <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#0d6efd' }}>💻 GitHub Repository ↗</Text>
+              </TouchableOpacity>
+
+              <View style={{ backgroundColor: theme.inputBg, padding: 10, borderRadius: 10 }}>
+                <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.textPrimary }}>🌤️ Open-Meteo API</Text>
+                <Text style={{ fontSize: 11, color: theme.textSecondary, marginTop: 2 }}>
+                  Global model outputs & reanalysis weather datasets licensed under CC BY 4.0.
+                </Text>
+              </View>
             </View>
           </ScrollView>
 
@@ -129,3 +139,4 @@ export const SettingsModal = ({
     </Modal>
   );
 };
+                            
