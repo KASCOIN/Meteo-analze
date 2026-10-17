@@ -1,3 +1,5 @@
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { getDateRange } from '../utils/weatherHelpers';
 
 export const exportArchiveCSV = async ({ location, range, granularity, variables }) => {
@@ -49,15 +51,19 @@ export const exportArchiveCSV = async ({ location, range, granularity, variables
     csvContent += row.join(',') + '\n';
   }
 
-  if (typeof document !== 'undefined') {
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `Meteorological_Archive_${location.name}_${startDate}_to_${endDate}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const fileName = `Climate_${location.name.replace(/\s+/g, '_')}_${startDate}_to_${endDate}.csv`;
+  const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+
+  await FileSystem.writeAsStringAsync(fileUri, csvContent, {
+    encoding: FileSystem.EncodingType.UTF8,
+  });
+
+  if (await Sharing.isAvailableAsync()) {
+    await Sharing.shareAsync(fileUri, {
+      mimeType: 'text/csv',
+      dialogTitle: 'Save Meteorological Dataset',
+      UTI: 'public.comma-separated-values-text',
+    });
   }
 
   return timeArray.length;
