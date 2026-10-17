@@ -70,6 +70,8 @@ export default function App() {
   const { width: windowWidth } = useWindowDimensions();
   const [currentTime, setCurrentTime] = useState(new Date());
 
+  const touchStartY = useRef(0);
+
   const [selectedLocation, setSelectedLocation] = useState({
     name: 'Current Position',
     country: 'GPS',
@@ -235,6 +237,23 @@ export default function App() {
     }
   };
 
+  // Web Touch Pull-to-Refresh Gesture Listeners
+  const handleTouchStartWeb = (e) => {
+    if (Platform.OS === 'web' && e.touches?.[0]) {
+      touchStartY.current = e.touches[0].clientY;
+    }
+  };
+
+  const handleTouchMoveWeb = (e) => {
+    if (Platform.OS === 'web' && e.touches?.[0] && typeof window !== 'undefined') {
+      const currentY = e.touches[0].clientY;
+      const diffY = currentY - touchStartY.current;
+      if (window.scrollY <= 0 && diffY > 80) {
+        window.location.reload();
+      }
+    }
+  };
+
   const triggerNotificationCheck = async () => {
     try {
       if (Platform.OS === 'web') {
@@ -333,7 +352,11 @@ export default function App() {
   const containerMaxWidth = windowWidth > 1024 ? 900 : windowWidth > 768 ? 720 : '100%';
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg, alignItems: 'center' }}>
+    <View
+      style={{ flex: 1, backgroundColor: theme.bg, alignItems: 'center' }}
+      onTouchStart={handleTouchStartWeb}
+      onTouchMove={handleTouchMoveWeb}
+    >
       <ScrollView
         style={[
           styles.container,
