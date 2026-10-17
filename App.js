@@ -83,19 +83,19 @@ export default function App() {
   const [isLocating, setIsLocating] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Preferences
+  // User Preferences
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [tempUnit, setTempUnit] = useState('C');
   const [speedUnit, setSpeedUnit] = useState('kmh');
   const [precipUnit, setPrecipUnit] = useState('mm');
 
-  // Modals
+  // Modals Visibility
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
 
-  // Notifications
+  // Notifications State
   const [isNotifyEnabled, setIsNotifyEnabled] = useState(false);
   const [notifyLocation, setNotifyLocation] = useState(selectedLocation);
   const [notifyIntervalMin, setNotifyIntervalMin] = useState(60);
@@ -113,13 +113,13 @@ export default function App() {
   const theme = getTheme(isDarkMode);
   const chartConfig = CHART_CONFIG(isDarkMode, theme.cardBg);
 
-  // Ticking Clock Timer (1 second)
+  // 1. Ticking Live Clock Timer (Updates every second)
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Continuous 1-Minute Underground Telemetry Polling
+  // 2. Continuous 1-Minute Underground Telemetry Polling
   useEffect(() => {
     const pollInterval = setInterval(async () => {
       const freshData = await fetchAndProcessClimateData(selectedLocation.latitude, selectedLocation.longitude, timeRange);
@@ -292,12 +292,22 @@ export default function App() {
   const formattedLiveTime = currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   const formattedLiveDate = currentTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 
+  // Responsive Breakpoint Container Layout
   const containerMaxWidth = windowWidth > 1024 ? 900 : windowWidth > 768 ? 720 : '100%';
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg, alignItems: 'center' }}>
       <ScrollView
-        style={[styles.container, { backgroundColor: theme.bg, width: '100%', maxWidth: containerMaxWidth, paddingHorizontal: 12 }]}
+        style={[
+          styles.container,
+          {
+            backgroundColor: theme.bg,
+            width: '100%',
+            maxWidth: containerMaxWidth,
+            paddingHorizontal: 12,
+            paddingTop: Platform.OS === 'web' ? 4 : undefined,
+          },
+        ]}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleManualRefresh} tintColor="#0d6efd" colors={['#0d6efd']} />
@@ -489,5 +499,5 @@ export default function App() {
       </ScrollView>
     </View>
   );
-            }
-    
+    }
+                                                    
