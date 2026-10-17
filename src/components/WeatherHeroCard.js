@@ -12,6 +12,7 @@ export const WeatherHeroCard = ({
   speedUnit,
   liveDate,
   liveTime,
+  aiSummary,
   isDarkMode,
 }) => {
   if (!current) return null;
@@ -19,24 +20,21 @@ export const WeatherHeroCard = ({
   const wmo = getWMOWeather(current.weatherCode);
   const fc3Wmo = forecast3Hr ? getWMOWeather(forecast3Hr.weatherCode) : null;
 
-  // Real-time AI Micro-Advisory Logic based on Live Telemetry
-  let aiAdvisory = "Conditions are optimal for field observations and outdoor activities.";
-  let aiBadgeColor = "#198754"; // Green
-
+  // Determine Badge Color Based on Telemetry
+  let aiBadgeColor = '#198754';
   if (current.humidity > 80 && current.weatherCode >= 50) {
-    aiAdvisory = "High relative humidity with precipitation expected. Secure climate instruments and plan for rain.";
-    aiBadgeColor = "#fd7e14"; // Orange
+    aiBadgeColor = '#fd7e14';
   } else if (current.temp > 32) {
-    aiAdvisory = "Elevated thermal index detected. High heat stress potential—stay hydrated during fieldwork.";
-    aiBadgeColor = "#dc3545"; // Red
+    aiBadgeColor = '#dc3545';
   } else if (current.windSpeed > 25) {
-    aiAdvisory = "Strong surface wind speeds detected. Caution advised for atmospheric sensor deployments.";
-    aiBadgeColor = "#0dcaf0"; // Cyan
+    aiBadgeColor = '#0dcaf0';
   }
+
+  const finalAiText = aiSummary || 'Analyzing live atmospheric telemetry via Kilo AI...';
 
   return (
     <View style={[styles.glassContainer, isDarkMode && styles.darkGlass]}>
-      {/* Header Section */}
+      {/* Top Header */}
       <View style={styles.topHeaderRow}>
         <View style={{ flex: 1, marginRight: 8 }}>
           <Text style={styles.locationTitle} numberOfLines={1}>
@@ -87,12 +85,12 @@ export const WeatherHeroCard = ({
         </View>
       )}
 
-      {/* AI Weather Advisory Panel */}
+      {/* Real-time Kilo AI Weather Advisory Panel */}
       <View style={[styles.aiPanel, { borderLeftColor: aiBadgeColor }]}>
         <View style={styles.aiHeaderRow}>
-          <Text style={styles.aiTagText}>🤖 AI CLIMATE ADVISORY</Text>
+          <Text style={styles.aiTagText}>🤖 KILO AI WEATHER ADVISORY</Text>
         </View>
-        <Text style={styles.aiAdvisoryBody}>{aiAdvisory}</Text>
+        <Text style={styles.aiAdvisoryBody}>{finalAiText}</Text>
       </View>
     </View>
   );
@@ -109,14 +107,9 @@ const styles = StyleSheet.create({
     ...Platform.select({
       web: {
         boxShadow: '0 8px 32px 0 rgba(13, 110, 253, 0.37)',
-        backdropFilter: 'blur(12px)',
       },
       default: {
         elevation: 8,
-        shadowColor: '#0d6efd',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.35,
-        shadowRadius: 10,
       },
     }),
   },
@@ -126,7 +119,7 @@ const styles = StyleSheet.create({
   },
   topHeaderRow: {
     flexDirection: 'row',
-    justify: 'space-between',
+    justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 14,
   },
@@ -169,7 +162,7 @@ const styles = StyleSheet.create({
   },
   mainMetricsRow: {
     flexDirection: 'row',
-    justify: 'space-between',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 10,
   },
@@ -256,4 +249,4 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
-            
+        
