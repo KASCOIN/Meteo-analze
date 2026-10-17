@@ -46,7 +46,7 @@
       ]
     },
     "web": {
-      "favicon": "./assets/favicon.ico",
+      "favicon": "./assets/icon.png",
       "output": "single"
     },
     "extra": {
