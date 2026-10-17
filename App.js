@@ -11,7 +11,6 @@ import {
   RefreshControl,
   Platform,
   useWindowDimensions,
-  StyleSheet,
 } from 'react-native';
 
 import * as Location from 'expo-location';
@@ -31,6 +30,7 @@ import { TrendAnalysis } from './src/components/TrendAnalysis';
 import { ArchiveModal } from './src/components/ArchiveModal';
 import { NotificationModal } from './src/components/NotificationModal';
 import { SettingsModal } from './src/components/SettingsModal';
+import { AboutModal } from './src/components/AboutModal';
 
 const BACKGROUND_WEATHER_TASK = 'BACKGROUND_WEATHER_TASK';
 
@@ -93,6 +93,7 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
 
   // Notifications
   const [isNotifyEnabled, setIsNotifyEnabled] = useState(false);
@@ -112,13 +113,13 @@ export default function App() {
   const theme = getTheme(isDarkMode);
   const chartConfig = CHART_CONFIG(isDarkMode, theme.cardBg);
 
-  // 1. Ticking Clock Timer (1 second)
+  // Ticking Clock Timer (1 second)
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // 2. Continuous 1-Minute Underground Telemetry Polling
+  // Continuous 1-Minute Underground Telemetry Polling
   useEffect(() => {
     const pollInterval = setInterval(async () => {
       const freshData = await fetchAndProcessClimateData(selectedLocation.latitude, selectedLocation.longitude, timeRange);
@@ -128,7 +129,7 @@ export default function App() {
         forecast1Hr: freshData.forecast1Hr,
         forecast3Hr: freshData.forecast3Hr,
       }));
-    }, 60000); // 60 seconds
+    }, 60000);
 
     return () => clearInterval(pollInterval);
   }, [selectedLocation, timeRange]);
@@ -291,7 +292,6 @@ export default function App() {
   const formattedLiveTime = currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   const formattedLiveDate = currentTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 
-  // Dynamic Layout Widths for Mobile vs Tablet vs PC Desktop
   const containerMaxWidth = windowWidth > 1024 ? 900 : windowWidth > 768 ? 720 : '100%';
 
   return (
@@ -477,10 +477,17 @@ export default function App() {
           precipUnit={precipUnit}
           setPrecipUnit={setPrecipUnit}
           onOpenAlerts={() => setIsNotificationOpen(true)}
+          onOpenAbout={() => setIsAboutOpen(true)}
+          theme={theme}
+        />
+
+        <AboutModal
+          isOpen={isAboutOpen}
+          onClose={() => setIsAboutOpen(false)}
           theme={theme}
         />
       </ScrollView>
     </View>
   );
-    }
-          
+            }
+    
