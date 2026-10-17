@@ -25,25 +25,6 @@
           "icon": "./assets/icon.png",
           "color": "#0d6efd"
         }
-      ],
-      [
-        "react-native-android-widget/app.plugin",
-        {
-          "widgets": [
-            {
-              "name": "MeteoLiveWidget",
-              "label": "Meteo Analaze Live Telemetry",
-              "description": "Real-time atmospheric telemetry and AI weather advisory on home screen.",
-              "minWidth": "280dp",
-              "minHeight": "120dp",
-              "targetCellWidth": 4,
-              "targetCellHeight": 2,
-              "previewImage": "./assets/icon.png",
-              "resizeMode": "horizontal|vertical",
-              "updatePeriodMillis": 1800000
-            }
-          ]
-        }
       ]
     ],
     "ios": {
