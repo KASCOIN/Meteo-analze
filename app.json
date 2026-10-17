@@ -47,7 +47,7 @@
     },
     "web": {
       "favicon": "./assets/icon.png",
-      "output": "static"
+      "output": "single"
     },
     "extra": {
       "eas": {
