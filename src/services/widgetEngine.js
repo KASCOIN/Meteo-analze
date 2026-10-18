@@ -22,7 +22,7 @@ export const updateAndroidHomeScreenWidget = async (location, current, wmoDesc) 
       >
         <FlexWidget style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
           <TextWidget
-            text={`📍 ${location.name || 'Live Location'}`}
+            text={`📍 ${location?.name || 'My Location'}`}
             style={{ color: '#ffffff', fontSize: 14, fontWeight: 'bold' }}
           />
           <TextWidget text="LIVE 🟢" style={{ color: '#00ff88', fontSize: 10, fontWeight: 'bold' }} />
@@ -34,7 +34,7 @@ export const updateAndroidHomeScreenWidget = async (location, current, wmoDesc) 
             style={{ color: '#ffffff', fontSize: 32, fontWeight: 'bold' }}
           />
           <TextWidget
-            text={` | ${wmoDesc || 'Overcast'}`}
+            text={` | ${wmoDesc || 'Clear'}`}
             style={{ color: '#ffffff', fontSize: 14, fontWeight: '600' }}
           />
         </FlexWidget>
@@ -51,8 +51,6 @@ export const updateAndroidHomeScreenWidget = async (location, current, wmoDesc) 
       renderWidget: () => <WidgetLayout />,
     });
   } catch (err) {
-    // Graceful fallback if widget package is not native-linked during dev
-    console.log('Android Widget update skipped:', err.message);
+    // Graceful fallback if widget package is not native linked
   }
 };
-            
