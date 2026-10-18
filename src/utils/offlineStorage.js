@@ -1,11 +1,39 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
 const CACHE_KEY = 'meteo_offline_cache_v1';
-const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000; // 3 days in milliseconds
+const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+
+// Lazy require native storage on mobile to prevent static web export build errors
+const getAsyncStorage = () => {
+  if (Platform.OS !== 'web') {
+    try {
+      return require('@react-native-async-storage/async-storage').default;
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
+};
+
+const getRawCache = async () => {
+  try {
+    let jsonValue = null;
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        jsonValue = window.localStorage.getItem(CACHE_KEY);
+      }
+    } else {
+      const storage = getAsyncStorage();
+      if (storage) jsonValue = await storage.getItem(CACHE_KEY);
+    }
+    return jsonValue ? JSON.parse(jsonValue) : [];
+  } catch (e) {
+    return [];
+  }
+};
 
 /**
- * Save a 12-hour weather payload into cache with timestamp
+ * Cache 12-hour weather payload with timestamp
  */
 export const cache12HrWeatherData = async (location, weatherData) => {
   try {
@@ -19,17 +47,20 @@ export const cache12HrWeatherData = async (location, weatherData) => {
       weatherData,
     };
 
-    // Filter out data older than 3 days while adding new record
+    // Keep records under 3 days old
     const updatedRecords = existingCacheRaw.filter(
       (item) => now - item.timestamp < THREE_DAYS_MS
     );
     updatedRecords.unshift(newRecord);
 
     const jsonValue = JSON.stringify(updatedRecords);
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      window.localStorage.setItem(CACHE_KEY, jsonValue);
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(CACHE_KEY, jsonValue);
+      }
     } else {
-      await AsyncStorage.setItem(CACHE_KEY, jsonValue);
+      const storage = getAsyncStorage();
+      if (storage) await storage.setItem(CACHE_KEY, jsonValue);
     }
   } catch (e) {
     console.error('Error caching offline weather data:', e);
@@ -37,16 +68,14 @@ export const cache12HrWeatherData = async (location, weatherData) => {
 };
 
 /**
- * Retrieve the latest valid cached weather payload for offline mode
+ * Get latest valid cached weather payload
  */
 export const getLatestCachedWeatherData = async (latitude, longitude) => {
   try {
     const records = await getRawCache();
     const now = Date.now();
 
-    // Find non-expired record matching location (or return most recent non-expired)
     const validRecords = records.filter((item) => now - item.timestamp < THREE_DAYS_MS);
-
     if (validRecords.length === 0) return null;
 
     const matched = validRecords.find(
@@ -63,7 +92,7 @@ export const getLatestCachedWeatherData = async (latitude, longitude) => {
 };
 
 /**
- * Auto-delete cache records older than 3 days
+ * Delete cache entries older than 3 days
  */
 export const cleanExpiredCacheData = async () => {
   try {
@@ -72,27 +101,15 @@ export const cleanExpiredCacheData = async () => {
     const freshRecords = records.filter((item) => now - item.timestamp < THREE_DAYS_MS);
 
     const jsonValue = JSON.stringify(freshRecords);
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      window.localStorage.setItem(CACHE_KEY, jsonValue);
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(CACHE_KEY, jsonValue);
+      }
     } else {
-      await AsyncStorage.setItem(CACHE_KEY, jsonValue);
+      const storage = getAsyncStorage();
+      if (storage) await storage.setItem(CACHE_KEY, jsonValue);
     }
   } catch (e) {
     console.error('Error cleaning expired cache:', e);
   }
 };
-
-const getRawCache = async () => {
-  try {
-    let jsonValue = null;
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      jsonValue = window.localStorage.getItem(CACHE_KEY);
-    } else {
-      jsonValue = await AsyncStorage.getItem(CACHE_KEY);
-    }
-    return jsonValue ? JSON.parse(jsonValue) : [];
-  } catch (e) {
-    return [];
-  }
-};
-    
