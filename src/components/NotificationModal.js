@@ -85,7 +85,7 @@ export const NotificationModal = ({
           <View style={modalStyles.headerRow}>
             <View>
               <Text style={[modalStyles.title, { color: theme.textPrimary }]}>🔔 Weather Alert Notifications</Text>
-              <Text style={[modalStyles.subtitle, { color: theme.textSecondary }]}>Configure live push telemetry alerts</Text>
+              <Text style={[modalStyles.subtitle, { color: theme.textSecondary }]}>6 AM Briefings & Telemetry Alerts</Text>
             </View>
             <TouchableOpacity onPress={onClose} style={modalStyles.closeButton}>
               <Text style={{ fontSize: 22, color: theme.textSecondary, fontWeight: 'bold' }}>✕</Text>
@@ -95,7 +95,7 @@ export const NotificationModal = ({
           <ScrollView style={{ marginBottom: 12 }} keyboardShouldPersistTaps="handled">
             {/* Enable Toggle */}
             <View style={[modalStyles.toggleRow, { borderBottomColor: theme.borderColor }]}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: theme.textPrimary }}>Enable Live Weather Alerts</Text>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: theme.textPrimary }}>Enable Daily & Live Weather Alerts</Text>
               <Switch
                 value={isEnabled}
                 onValueChange={setIsEnabled}
@@ -103,8 +103,8 @@ export const NotificationModal = ({
               />
             </View>
 
-            {/* 1. Target Location Selection with GPS Icon */}
-            <Text style={[modalStyles.sectionTitle, { color: theme.textPrimary, marginTop: 12 }]}>1. Notification Location Target</Text>
+            {/* 1. Target Location Selection with GPS Button */}
+            <Text style={[modalStyles.sectionTitle, { color: theme.textPrimary, marginTop: 12 }]}>1. Target Alert Location</Text>
             
             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8, alignItems: 'center' }}>
               <View style={{ flex: 1, position: 'relative' }}>
@@ -121,7 +121,6 @@ export const NotificationModal = ({
                 {isSearching && <ActivityIndicator size="small" color="#0d6efd" style={modalStyles.searchLoader} />}
               </View>
 
-              {/* Present GPS Location Button Icon */}
               <TouchableOpacity
                 style={modalStyles.gpsIconButton}
                 onPress={handleSetGpsLocation}
@@ -167,14 +166,14 @@ export const NotificationModal = ({
               </Text>
             </View>
 
-            {/* 2. Interval Selection */}
-            <Text style={[modalStyles.sectionTitle, { color: theme.textPrimary, marginTop: 12 }]}>2. Notification Interval</Text>
+            {/* 2. Interval Selection (Includes 5m Test Option) */}
+            <Text style={[modalStyles.sectionTitle, { color: theme.textPrimary, marginTop: 12 }]}>2. Notification Schedule</Text>
             <View style={modalStyles.pillGroup}>
               {[
+                { label: '⚡ 5m (Test)', val: 5 },
                 { label: '30m', val: 30 },
                 { label: '1 Hr', val: 60 },
                 { label: '3 Hrs', val: 180 },
-                { label: '6 Hrs', val: 360 },
               ].map((item) => (
                 <TouchableOpacity
                   key={item.val}
@@ -226,7 +225,7 @@ export const NotificationModal = ({
           {/* Test & Close Buttons */}
           <View style={{ gap: 8 }}>
             <TouchableOpacity style={modalStyles.testButton} onPress={onTestTrigger}>
-              <Text style={modalStyles.testButtonText}>🔔 Dispatch Test Alert Now</Text>
+              <Text style={modalStyles.testButtonText}>🔔 Dispatch Instant AI Alert</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={[modalStyles.closeModalButton, { backgroundColor: theme.borderColor }]} onPress={onClose}>
@@ -339,7 +338,7 @@ const modalStyles = StyleSheet.create({
     backgroundColor: '#0d6efd',
   },
   pillText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: '#6c757d',
   },
@@ -379,4 +378,4 @@ const modalStyles = StyleSheet.create({
     alignItems: 'center',
   },
 });
-                                                                             
+                 
