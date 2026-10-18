@@ -29,13 +29,19 @@ import { searchLocations } from './src/services/geocodingEngine';
 import { fetchAndProcessClimateData } from './src/services/weatherEngine';
 import { fetchKiloAiWeatherSummary } from './src/services/aiEngine';
 import { saveUserPreferences, getUserPreferences } from './src/utils/storage';
-import { updateAndroidHomeScreenWidget } from './src/services/widgetEngine';
+import {
+  cache12HrWeatherData,
+  getLatestCachedWeatherData,
+  cleanExpiredCacheData,
+} from './src/utils/offlineStorage';
 
 import { WeatherHeroCard } from './src/components/WeatherHeroCard';
 import { ArchiveModal } from './src/components/ArchiveModal';
 import { NotificationModal } from './src/components/NotificationModal';
 import { SettingsModal } from './src/components/SettingsModal';
 import { Footer } from './src/components/Footer';
+import { OfflineBanner } from './src/components/OfflineBanner';
+import { CustomAlertModal } from './src/components/CustomAlertModal';
 
 const BACKGROUND_WEATHER_TASK = 'BACKGROUND_WEATHER_TASK';
 
@@ -55,8 +61,14 @@ if (Platform.OS !== 'web') {
         longitude: 3.37,
         name: 'Present Location',
       });
-      const data = await fetchAndProcessClimateData(savedNotifyLoc.latitude, savedNotifyLoc.longitude, '14d');
-      if (data.current) {
+
+      // Try fetching live data or fallback to offline cache
+      let data = await fetchAndProcessClimateData(savedNotifyLoc.latitude, savedNotifyLoc.longitude, '14d');
+      if (!data || !data.current) {
+        data = await getLatestCachedWeatherData(savedNotifyLoc.latitude, savedNotifyLoc.longitude);
+      }
+
+      if (data && data.current) {
         const currWmo = getWMOWeather(data.current.weatherCode);
         const shortAiAdvisory = await fetchKiloAiWeatherSummary({
           locationName: savedNotifyLoc.name,
@@ -99,13 +111,26 @@ export default function App() {
   const [isSearching, setIsSearching] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
 
-  // User Preferences
+  // Custom Styled Alert Modal State
+  const [alertConfig, setAlertConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info',
+  });
+
+  const showAlert = (title, message, type = 'info') => {
+    setAlertConfig({ visible: true, title, message, type });
+  };
+
+  // Preferences
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [tempUnit, setTempUnit] = useState('C');
   const [speedUnit, setSpeedUnit] = useState('kmh');
 
-  // Modals Visibility
+  // Modals
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
@@ -118,7 +143,7 @@ export default function App() {
   const [notifyBadgeColor, setNotifyBadgeColor] = useState('#0d6efd');
   const [notifyVars, setNotifyVars] = useState({ temp: true, precip: true, wind: true, uv: true });
 
-  // Weather Payload & AI State
+  // Weather Payload & AI
   const [weatherPayload, setWeatherPayload] = useState({ current: null, forecast1Hr: null, forecast3Hr: null });
   const [aiSummary, setAiSummary] = useState('');
   const [loading, setLoading] = useState(true);
@@ -127,15 +152,32 @@ export default function App() {
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const theme = getTheme(isDarkMode);
 
-  // 1. Ticking Live Clock
+  // 1. Ticking Live Clock & 12-Hour Scheduled Cache Triggers (00:00 & 12:00)
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+    const timer = setInterval(() => {
+      const now = new Date();
+      setCurrentTime(now);
 
-  // 2. Immediate On-load GPS Location Fetching
+      // Trigger cache save at exactly 00:00 AM or 12:00 PM
+      if (
+        (now.getHours() === 0 || now.getHours() === 12) &&
+        now.getMinutes() === 0 &&
+        now.getSeconds() === 0
+      ) {
+        if (weatherPayload.current) {
+          cache12HrWeatherData(selectedLocation, weatherPayload);
+        }
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [selectedLocation, weatherPayload]);
+
+  // 2. Initial Setup: Clean old cache (>3 days) & Fetch GPS + Storage
   useEffect(() => {
-    const initLocationAndPreferences = async () => {
+    const initApp = async () => {
+      await cleanExpiredCacheData();
+
       const savedDark = await getUserPreferences('isDarkMode', false);
       const savedTemp = await getUserPreferences('tempUnit', 'C');
       const savedSpeed = await getUserPreferences('speedUnit', 'kmh');
@@ -164,10 +206,10 @@ export default function App() {
       }
     };
 
-    initLocationAndPreferences();
+    initApp();
   }, []);
 
-  // Save Preferences when changed
+  // Save Preferences
   useEffect(() => {
     saveUserPreferences('isDarkMode', isDarkMode);
     saveUserPreferences('tempUnit', tempUnit);
@@ -176,92 +218,46 @@ export default function App() {
     saveUserPreferences('notifyLocation', notifyLocation);
   }, [isDarkMode, tempUnit, speedUnit, selectedLocation, notifyLocation]);
 
-  // 3. Continuous 1-Minute Underground Telemetry Polling & Widget Updates
-  useEffect(() => {
-    const pollInterval = setInterval(async () => {
-      const freshData = await fetchAndProcessClimateData(selectedLocation.latitude, selectedLocation.longitude, '14d');
-      setWeatherPayload((prev) => ({
-        ...prev,
-        current: freshData.current,
-        forecast1Hr: freshData.forecast1Hr,
-        forecast3Hr: freshData.forecast3Hr,
-      }));
-
-      if (freshData.current) {
-        const wmo = getWMOWeather(freshData.current.weatherCode);
-        const aiText = await fetchKiloAiWeatherSummary({
-          locationName: selectedLocation.name,
-          current: freshData.current,
-          wmoDesc: wmo.desc,
-          tempUnit,
-          isForNotification: false,
-        });
-        if (aiText) setAiSummary(aiText);
-
-        updateAndroidHomeScreenWidget(selectedLocation, freshData.current, wmo.desc);
-      }
-    }, 60000);
-
-    return () => clearInterval(pollInterval);
-  }, [selectedLocation, tempUnit]);
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.25, duration: 800, useNativeDriver: true, easing: Easing.ease }),
-        Animated.timing(pulseAnim, { toValue: 1.0, duration: 800, useNativeDriver: true, easing: Easing.ease }),
-      ])
-    ).start();
-  }, [pulseAnim]);
-
-  useEffect(() => {
-    if (Platform.OS !== 'web') {
-      registerBackgroundSync();
-    }
-  }, []);
-
-  const registerBackgroundSync = async () => {
-    try {
-      const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_WEATHER_TASK);
-      if (!isRegistered) {
-        await BackgroundFetch.registerTaskAsync(BACKGROUND_WEATHER_TASK, {
-          minimumInterval: 15 * 60,
-          stopOnTerminate: false,
-          startOnBoot: true,
-        });
-      }
-    } catch (err) {}
-  };
-
+  // 3. Load Weather Data (Supports Live API & Offline Local Cache Fallback)
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       fadeAnim.setValue(0);
-      const data = await fetchAndProcessClimateData(selectedLocation.latitude, selectedLocation.longitude, '14d');
-      setWeatherPayload(data);
 
-      if (data.current) {
-        const wmo = getWMOWeather(data.current.weatherCode);
-        const aiText = await fetchKiloAiWeatherSummary({
-          locationName: selectedLocation.name,
-          current: data.current,
-          wmoDesc: wmo.desc,
-          tempUnit,
-          isForNotification: false,
-        });
-        if (aiText) setAiSummary(aiText);
+      try {
+        const data = await fetchAndProcessClimateData(selectedLocation.latitude, selectedLocation.longitude, '14d');
+        if (data && data.current) {
+          setIsOffline(false);
+          setWeatherPayload(data);
+          cache12HrWeatherData(selectedLocation, data);
 
-        updateAndroidHomeScreenWidget(selectedLocation, data.current, wmo.desc);
+          const wmo = getWMOWeather(data.current.weatherCode);
+          const aiText = await fetchKiloAiWeatherSummary({
+            locationName: selectedLocation.name,
+            current: data.current,
+            wmoDesc: wmo.desc,
+            tempUnit,
+            isForNotification: false,
+          });
+          if (aiText) setAiSummary(aiText);
+        } else {
+          throw new Error('API unreachable');
+        }
+      } catch (err) {
+        setIsOffline(true);
+        const cached = await getLatestCachedWeatherData(selectedLocation.latitude, selectedLocation.longitude);
+        if (cached) {
+          setWeatherPayload(cached);
+          showAlert('Offline Mode', 'Showing local cached telemetry data. Features will auto-refresh when reconnected.', 'warning');
+        } else {
+          showAlert('No Connection', 'Unable to fetch weather data and no offline cache available.', 'error');
+        }
+      } finally {
+        setLoading(false);
+        Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
       }
-
-      setLoading(false);
-
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }).start();
     };
+
     loadData();
   }, [selectedLocation]);
 
@@ -270,9 +266,18 @@ export default function App() {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       window.location.reload();
     } else {
-      const data = await fetchAndProcessClimateData(selectedLocation.latitude, selectedLocation.longitude, '14d');
-      setWeatherPayload(data);
-      setRefreshing(false);
+      try {
+        const data = await fetchAndProcessClimateData(selectedLocation.latitude, selectedLocation.longitude, '14d');
+        if (data && data.current) {
+          setIsOffline(false);
+          setWeatherPayload(data);
+          cache12HrWeatherData(selectedLocation, data);
+        }
+      } catch (e) {
+        setIsOffline(true);
+      } finally {
+        setRefreshing(false);
+      }
     }
   };
 
@@ -296,14 +301,17 @@ export default function App() {
     try {
       if (Platform.OS === 'web') {
         if (!('Notification' in window)) {
-          alert('Web browser push notifications not supported.');
+          showAlert('Unsupported Browser', 'Web push notifications are not supported on this browser.', 'error');
           return;
         }
         let perm = Notification.permission;
         if (perm !== 'granted') perm = await Notification.requestPermission();
         if (perm === 'granted') {
-          const data = await fetchAndProcessClimateData(notifyLocation.latitude, notifyLocation.longitude, '14d');
-          const curr = data.current;
+          let data = weatherPayload;
+          if (isOffline) {
+            data = await getLatestCachedWeatherData(notifyLocation.latitude, notifyLocation.longitude);
+          }
+          const curr = data?.current;
           if (curr) {
             const currWmo = getWMOWeather(curr.weatherCode);
             const shortAiAdvisory = await fetchKiloAiWeatherSummary({
@@ -317,18 +325,21 @@ export default function App() {
             new Notification(`📍 ${notifyLocation.name} Live Brief`, {
               body: `${currWmo.icon} ${currWmo.desc} | ${convertTemp(curr.temp, tempUnit)}°${tempUnit}. ${shortAiAdvisory}`,
             });
-            alert('Web browser push notification dispatched!');
+            showAlert('Notification Sent', 'Web push notification dispatched successfully!', 'success');
           }
         }
       } else {
         const { status } = await Notifications.requestPermissionsAsync();
         if (status !== 'granted') {
-          alert('Notification permission denied.');
+          showAlert('Permission Denied', 'Notification permissions are disabled in system settings.', 'error');
           return;
         }
 
-        const data = await fetchAndProcessClimateData(notifyLocation.latitude, notifyLocation.longitude, '14d');
-        const curr = data.current;
+        let data = weatherPayload;
+        if (isOffline) {
+          data = await getLatestCachedWeatherData(notifyLocation.latitude, notifyLocation.longitude);
+        }
+        const curr = data?.current;
         if (!curr) return;
 
         const currWmo = getWMOWeather(curr.weatherCode);
@@ -349,10 +360,10 @@ export default function App() {
           trigger: null,
         });
 
-        alert('Instant AI Weather notification queued!');
+        showAlert('Notification Dispatched', 'Instant AI weather alert queued on your device!', 'success');
       }
     } catch (err) {
-      alert('Notification Error: ' + err.message);
+      showAlert('Notification Error', err.message, 'error');
     }
   };
 
@@ -373,7 +384,7 @@ export default function App() {
     try {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        alert('Permission to access location was denied.');
+        showAlert('Location Denied', 'Permission to access location was denied.', 'warning');
         setIsLocating(false);
         return;
       }
@@ -387,8 +398,9 @@ export default function App() {
       };
       setSelectedLocation(myLoc);
       setNotifyLocation(myLoc);
+      showAlert('Location Updated', 'GPS position synchronized successfully!', 'success');
     } catch (err) {
-      alert('Could not access device GPS location.');
+      showAlert('Location Error', 'Could not access device GPS location.', 'error');
     } finally {
       setIsLocating(false);
     }
@@ -404,12 +416,7 @@ export default function App() {
       onTouchStart={handleTouchStartWeb}
       onTouchMove={handleTouchMoveWeb}
     >
-      {/* Edge-to-Edge Status Bar Fix */}
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor="transparent"
-        translucent
-      />
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
 
       <ScrollView
         style={[
@@ -457,6 +464,9 @@ export default function App() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Offline Status Indicator */}
+        <OfflineBanner isOffline={isOffline} />
 
         {/* Search & "Me" Button */}
         <View style={styles.searchRow}>
@@ -530,7 +540,7 @@ export default function App() {
           </Animated.View>
         )}
 
-        {/* Remodeled Hamburger Menu */}
+        {/* Remodeled Navigation Menu */}
         <Modal visible={isMenuOpen} transparent animationType="fade" onRequestClose={() => setIsMenuOpen(false)}>
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
             <View style={{ width: '100%', maxWidth: 380, backgroundColor: theme.cardBg, borderRadius: 20, padding: 22 }}>
@@ -586,12 +596,7 @@ export default function App() {
           </View>
         </Modal>
 
-        <ArchiveModal
-          isOpen={isArchiveOpen}
-          onClose={() => setIsArchiveOpen(false)}
-          defaultLocation={selectedLocation}
-          theme={theme}
-        />
+        <ArchiveModal isOpen={isArchiveOpen} onClose={() => setIsArchiveOpen(false)} defaultLocation={selectedLocation} theme={theme} />
 
         <NotificationModal
           isOpen={isNotificationOpen}
@@ -612,16 +617,27 @@ export default function App() {
 
         <SettingsModal
           isOpen={isSettingsOpen}
-          onClose={() => setIsSettingsOpen(false)}
+          onClose={() => {
+            setIsSettingsOpen(false);
+            showAlert('Settings Saved', 'System preferences saved to persistent storage.', 'success');
+          }}
           isDarkMode={isDarkMode}
           setIsDarkMode={setIsDarkMode}
           tempUnit={tempUnit}
           setTempUnit={setTempUnit}
           speedUnit={speedUnit}
           setSpeedUnit={setSpeedUnit}
-          precipUnit={precipUnit}
-          setPrecipUnit={setPrecipUnit}
           onOpenAlerts={() => setIsNotificationOpen(true)}
+          theme={theme}
+        />
+
+        {/* Custom Styled System Alert Dialog */}
+        <CustomAlertModal
+          visible={alertConfig.visible}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          type={alertConfig.type}
+          onClose={() => setAlertConfig((prev) => ({ ...prev, visible: false }))}
           theme={theme}
         />
 
@@ -629,4 +645,4 @@ export default function App() {
       </ScrollView>
     </View>
   );
-                  }  
+              }
