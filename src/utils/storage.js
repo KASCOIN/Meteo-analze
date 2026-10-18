@@ -1,13 +1,26 @@
 import { Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const getAsyncStorage = () => {
+  if (Platform.OS !== 'web') {
+    try {
+      return require('@react-native-async-storage/async-storage').default;
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
+};
 
 export const saveUserPreferences = async (key, value) => {
   try {
     const jsonValue = JSON.stringify(value);
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      window.localStorage.setItem(key, jsonValue);
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(key, jsonValue);
+      }
     } else {
-      await AsyncStorage.setItem(key, jsonValue);
+      const storage = getAsyncStorage();
+      if (storage) await storage.setItem(key, jsonValue);
     }
   } catch (e) {
     console.error('Error saving storage key:', key, e);
@@ -17,10 +30,13 @@ export const saveUserPreferences = async (key, value) => {
 export const getUserPreferences = async (key, defaultValue = null) => {
   try {
     let jsonValue = null;
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      jsonValue = window.localStorage.getItem(key);
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        jsonValue = window.localStorage.getItem(key);
+      }
     } else {
-      jsonValue = await AsyncStorage.getItem(key);
+      const storage = getAsyncStorage();
+      if (storage) jsonValue = await storage.getItem(key);
     }
     return jsonValue != null ? JSON.parse(jsonValue) : defaultValue;
   } catch (e) {
