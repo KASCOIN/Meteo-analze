@@ -1,15 +1,28 @@
 /**
- * Service to request real-time weather AI summaries via Kilo AI Gateway
- * Gateway Endpoint: https://api.kilo.ai/api/gateway
+ * Practical Lifestyle AI Advisory Engine via Kilo AI Gateway
+ * Endpoint: https://api.kilo.ai/api/gateway
  */
-export const fetchKiloAiWeatherSummary = async ({ locationName, current, wmoDesc, tempUnit }) => {
+export const fetchKiloAiWeatherSummary = async ({
+  locationName,
+  current,
+  wmoDesc,
+  tempUnit,
+  isForNotification = false,
+}) => {
   if (!current) return null;
 
-  const promptText = `Provide a concise 2-sentence meteorological advisory for ${locationName}. Current Weather: ${wmoDesc}, Temperature: ${current.temp}°${tempUnit}, Humidity: ${current.humidity}%, Wind: ${current.windSpeed} km/h. Keep it actionable for research or daily planning.`;
+  const promptContent = isForNotification
+    ? `Give a 1-sentence quick weather alert for ${locationName}. Weather: ${wmoDesc}, ${current.temp}°${tempUnit}, Humidity: ${current.humidity}%. Tell them what to wear or carry (e.g. umbrella, jacket, or water) in under 12 words.`
+    : `Provide practical daily lifestyle advice for an average person in ${locationName} based on this weather:
+Condition: ${wmoDesc}, Temp: ${current.temp}°${tempUnit}, Humidity: ${current.humidity}%, Wind: ${current.windSpeed} km/h.
+Include: 
+1. What to wear today (light clothing, rain jacket, layer up).
+2. Hydration & outdoor advice (drink water, wear sunscreen, or stay indoors).
+Keep it friendly, practical, and concise (2 to 3 sentences total).`;
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000); // 4-second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
 
     const response = await fetch('https://api.kilo.ai/api/gateway', {
       method: 'POST',
@@ -22,14 +35,15 @@ export const fetchKiloAiWeatherSummary = async ({ locationName, current, wmoDesc
         messages: [
           {
             role: 'system',
-            content: 'You are an atmospheric AI research assistant providing quick climate advisories.',
+            content:
+              'You are a friendly weather assistant giving practical lifestyle advice (clothing, hydration, gear) to everyday people.',
           },
           {
             role: 'user',
-            content: promptText,
+            content: promptContent,
           },
         ],
-        max_tokens: 80,
+        max_tokens: isForNotification ? 40 : 100,
       }),
     });
 
@@ -43,16 +57,25 @@ export const fetchKiloAiWeatherSummary = async ({ locationName, current, wmoDesc
       }
     }
   } catch (err) {
-    // Graceful fallback on network delay or offline
+    // Fallback on timeout or network error
   }
 
-  // Local Rule-Based Fallback Engine
-  if (current.humidity > 80 && current.weatherCode >= 50) {
-    return 'High relative humidity with active precipitation. Secure field instrumentation and prepare for rainfall.';
-  } else if (current.temp > 32) {
-    return 'Elevated surface thermal index detected. Extreme heat stress potential—hydration recommended for field operations.';
-  } else if (current.windSpeed > 25) {
-    return 'High surface wind velocities recorded. Exercise caution with atmospheric sensor deployments.';
+  // Practical Rule-Based Fallback Engine
+  const tempC = tempUnit === 'F' ? ((current.temp - 32) * 5) / 9 : current.temp;
+
+  if (isForNotification) {
+    if (current.humidity > 80 && current.weatherCode >= 50) return '☔ Rain expected today! Carry an umbrella and wear waterproof shoes.';
+    if (tempC > 30) return '☀️ Hot & humid day! Wear breathable cotton and drink plenty of water.';
+    if (tempC < 18) return '🧥 Chilly weather! Grab a jacket or sweater before heading out.';
+    return '🌤️ Pleasant weather ahead! Dress comfortably and enjoy your day.';
   }
-  return 'Atmospheric parameters are optimal for field operations, outdoor research, and sensor calibration.';
+
+  if (current.humidity > 80 && current.weatherCode >= 50) {
+    return '☔ Rainfall expected today. Wear waterproof footwear, pack an umbrella, and keep light rain gear handy. Remember to stay hydrated throughout the day!';
+  } else if (tempC > 30) {
+    return '☀️ It is warm and sunny today! Wear lightweight, breathable cotton clothes, put on sunglasses or sunscreen, and carry a water bottle to stay hydrated.';
+  } else if (tempC < 18) {
+    return '🧥 Cool atmospheric conditions ahead. Layer up with a light jacket or sweater to stay warm during morning and evening commutes.';
+  }
+  return '🌤️ Weather conditions are comfortable today! Wear casual comfortable clothing, stay hydrated, and enjoy any planned outdoor activities.';
 };
