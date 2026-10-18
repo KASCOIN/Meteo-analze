@@ -20,19 +20,17 @@ export const WeatherHeroCard = ({
   const wmo = getWMOWeather(current.weatherCode);
   const fc3Wmo = forecast3Hr ? getWMOWeather(forecast3Hr.weatherCode) : null;
 
-  // AI Alert Theme Indicator
   let aiBadgeColor = '#198754';
   if (current.humidity > 80 && current.weatherCode >= 50) {
     aiBadgeColor = '#fd7e14';
-  } else if (current.temp > 32) {
+  } else if (current.temp > 30) {
     aiBadgeColor = '#dc3545';
-  } else if (current.windSpeed > 25) {
-    aiBadgeColor = '#0dcaf0';
   }
 
-  const finalAiText = aiSummary || 'Analyzing live atmospheric telemetry via Kilo AI...';
+  const finalAiText =
+    aiSummary ||
+    '🌤️ Wear comfortable daily attire, carry a water bottle, and check weather updates before heading out.';
 
-  // Derived telemetry calculations
   const dewPoint = (current.temp - (100 - current.humidity) / 5).toFixed(1);
   const pressure = current.pressure || 1013;
   const cloudCover = current.cloudCover ?? 45;
@@ -42,7 +40,7 @@ export const WeatherHeroCard = ({
 
   return (
     <View style={[styles.glassContainer, isDarkMode && styles.darkGlass]}>
-      {/* 1. Header & Live Clock */}
+      {/* 1. Location & Live Clock Header */}
       <View style={styles.topHeaderRow}>
         <View style={{ flex: 1, marginRight: 8 }}>
           <Text style={styles.locationTitle} numberOfLines={1}>
@@ -62,7 +60,7 @@ export const WeatherHeroCard = ({
         </View>
       </View>
 
-      {/* 2. Primary Thermal & Condition Banner */}
+      {/* 2. Main Temperature Banner */}
       <View style={styles.mainMetricsRow}>
         <View style={styles.tempLeftGroup}>
           <Text style={styles.weatherIcon}>{wmo.icon}</Text>
@@ -73,13 +71,27 @@ export const WeatherHeroCard = ({
         </View>
 
         <View style={styles.conditionRightGroup}>
-          <Text style={styles.conditionTitle} numberOfLines={1}>{wmo.desc}</Text>
-          <Text style={styles.subMetric}>Feels like: {convertTemp(current.temp + 1.2, tempUnit)}°{tempUnit}</Text>
-          <Text style={styles.subMetric}>Dew Point: {convertTemp(parseFloat(dewPoint), tempUnit)}°{tempUnit}</Text>
+          <Text style={styles.conditionTitle} numberOfLines={1}>
+            {wmo.desc}
+          </Text>
+          <Text style={styles.subMetric}>
+            Feels like: {convertTemp(current.temp + 1.2, tempUnit)}°{tempUnit}
+          </Text>
+          <Text style={styles.subMetric}>
+            Dew Point: {convertTemp(parseFloat(dewPoint), tempUnit)}°{tempUnit}
+          </Text>
         </View>
       </View>
 
-      {/* 3. Comprehensive Meteorological Telemetry Grid (6 Metrics) */}
+      {/* 3. Practical AI Lifestyle & Outfit Advisory Box */}
+      <View style={[styles.aiPanel, { borderLeftColor: aiBadgeColor }]}>
+        <View style={styles.aiHeaderRow}>
+          <Text style={styles.aiTagText}>👕 DAILY OUTFIT & LIFESTYLE ADVICE</Text>
+        </View>
+        <Text style={styles.aiAdvisoryBody}>{finalAiText}</Text>
+      </View>
+
+      {/* 4. Telemetry Metrics Grid */}
       <View style={styles.telemetryGrid}>
         <View style={styles.telemetryCard}>
           <Text style={styles.telemetryIcon}>💧</Text>
@@ -89,18 +101,20 @@ export const WeatherHeroCard = ({
 
         <View style={styles.telemetryCard}>
           <Text style={styles.telemetryIcon}>💨</Text>
-          <Text style={styles.telemetryLabel}>Wind Vector</Text>
+          <Text style={styles.telemetryLabel}>Wind Speed</Text>
           <Text style={styles.telemetryValue}>
             {convertSpeed(current.windSpeed, speedUnit)} {speedUnit.toUpperCase()}
           </Text>
-          <Text style={styles.telemetrySub}>Gusts: {convertSpeed(parseFloat(windGusts), speedUnit)}</Text>
+          <Text style={styles.telemetrySub}>
+            Gusts: {convertSpeed(parseFloat(windGusts), speedUnit)}
+          </Text>
         </View>
 
         <View style={styles.telemetryCard}>
           <Text style={styles.telemetryIcon}>☀️</Text>
           <Text style={styles.telemetryLabel}>UV Index</Text>
           <Text style={styles.telemetryValue}>{uvIndex} / 11</Text>
-          <Text style={styles.telemetrySub}>{uvIndex >= 6 ? 'High Risk' : 'Moderate'}</Text>
+          <Text style={styles.telemetrySub}>{uvIndex >= 6 ? 'Sunscreen' : 'Safe'}</Text>
         </View>
 
         <View style={styles.telemetryCard}>
@@ -122,29 +136,22 @@ export const WeatherHeroCard = ({
         </View>
       </View>
 
-      {/* 4. 3-Hour Short Term Forecast Banner */}
+      {/* 5. 3-Hour Forecast Banner */}
       {forecast3Hr && (
         <View style={styles.forecastBox}>
           <Text style={styles.forecastHeader}>EXPECTED AT {forecast3Hr.time}</Text>
           <View style={styles.forecastRow}>
-            <Text style={{ fontSize: 20 }}>{fc3Wmo.icon}</Text>
+            <Text style={{ fontSize: 18 }}>{fc3Wmo.icon}</Text>
             <Text style={styles.forecastText}>
               {convertTemp(forecast3Hr.temp, tempUnit)}°{tempUnit} — {fc3Wmo.desc}
             </Text>
             <Text style={styles.forecastSubText}>
-              Precip: {forecast3Hr.precipProb}% | Wind: {convertSpeed(forecast3Hr.windSpeed, speedUnit)} {speedUnit}
+              Precip: {forecast3Hr.precipProb}% | Wind:{' '}
+              {convertSpeed(forecast3Hr.windSpeed, speedUnit)} {speedUnit}
             </Text>
           </View>
         </View>
       )}
-
-      {/* 5. Real-Time Kilo AI Advisory Panel */}
-      <View style={[styles.aiPanel, { borderLeftColor: aiBadgeColor }]}>
-        <View style={styles.aiHeaderRow}>
-          <Text style={styles.aiTagText}>🤖 KILO AI WEATHER ADVISORY</Text>
-        </View>
-        <Text style={styles.aiAdvisoryBody}>{finalAiText}</Text>
-      </View>
     </View>
   );
 };
@@ -223,9 +230,7 @@ const styles = StyleSheet.create({
     justify: 'space-between',
     alignItems: 'center',
     paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
-    marginBottom: 14,
+    marginBottom: 10,
   },
   tempLeftGroup: {
     flexDirection: 'row',
@@ -261,6 +266,28 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.88)',
     fontWeight: '500',
     lineHeight: 17,
+  },
+  aiPanel: {
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 14,
+    borderLeftWidth: 4,
+  },
+  aiHeaderRow: {
+    marginBottom: 4,
+  },
+  aiTagText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#00f2fe',
+    letterSpacing: 0.5,
+  },
+  aiAdvisoryBody: {
+    fontSize: 12.5,
+    color: '#ffffff',
+    lineHeight: 18,
+    fontWeight: '500',
   },
   telemetryGrid: {
     flexDirection: 'row',
@@ -306,7 +333,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.22)',
     borderRadius: 14,
     padding: 12,
-    marginBottom: 12,
   },
   forecastHeader: {
     fontSize: 9.5,
@@ -330,26 +356,5 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     color: 'rgba(255, 255, 255, 0.82)',
   },
-  aiPanel: {
-    backgroundColor: 'rgba(255, 255, 255, 0.14)',
-    borderRadius: 14,
-    padding: 12,
-    borderLeftWidth: 4,
-  },
-  aiHeaderRow: {
-    marginBottom: 4,
-  },
-  aiTagText: {
-    fontSize: 10.5,
-    fontWeight: '800',
-    color: '#00f2fe',
-    letterSpacing: 0.5,
-  },
-  aiAdvisoryBody: {
-    fontSize: 12,
-    color: '#ffffff',
-    lineHeight: 17,
-    fontWeight: '500',
-  },
 });
-            
+  
