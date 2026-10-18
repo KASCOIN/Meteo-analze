@@ -11,6 +11,7 @@ import {
   Animated,
   Easing,
   RefreshControl,
+  StatusBar,
   Platform,
   useWindowDimensions,
 } from 'react-native';
@@ -49,14 +50,26 @@ if (Platform.OS !== 'web') {
 
   TaskManager.defineTask(BACKGROUND_WEATHER_TASK, async () => {
     try {
-      const savedNotifyLoc = await getUserPreferences('notify_location', { latitude: 6.52, longitude: 3.37, name: 'Lagos' });
+      const savedNotifyLoc = await getUserPreferences('notify_location', {
+        latitude: 6.52,
+        longitude: 3.37,
+        name: 'Present Location',
+      });
       const data = await fetchAndProcessClimateData(savedNotifyLoc.latitude, savedNotifyLoc.longitude, '14d');
       if (data.current) {
         const currWmo = getWMOWeather(data.current.weatherCode);
+        const shortAiAdvisory = await fetchKiloAiWeatherSummary({
+          locationName: savedNotifyLoc.name,
+          current: data.current,
+          wmoDesc: currWmo.desc,
+          tempUnit: 'C',
+          isForNotification: true,
+        });
+
         await Notifications.scheduleNotificationAsync({
           content: {
-            title: `📍 ${savedNotifyLoc.name} Weather Alert`,
-            body: `${currWmo.icon} ${currWmo.desc} | Temp: ${data.current.temp}°C | Humidity: ${data.current.humidity}%`,
+            title: `📍 ${savedNotifyLoc.name} Weather Brief`,
+            body: `${currWmo.icon} ${currWmo.desc} | Temp: ${data.current.temp}°C. ${shortAiAdvisory}`,
             sound: true,
           },
           trigger: null,
@@ -91,9 +104,8 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [tempUnit, setTempUnit] = useState('C');
   const [speedUnit, setSpeedUnit] = useState('kmh');
-  const [precipUnit, setPrecipUnit] = useState('mm');
 
-  // Modals
+  // Modals Visibility
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
@@ -106,7 +118,7 @@ export default function App() {
   const [notifyBadgeColor, setNotifyBadgeColor] = useState('#0d6efd');
   const [notifyVars, setNotifyVars] = useState({ temp: true, precip: true, wind: true, uv: true });
 
-  // Weather & AI
+  // Weather Payload & AI State
   const [weatherPayload, setWeatherPayload] = useState({ current: null, forecast1Hr: null, forecast3Hr: null });
   const [aiSummary, setAiSummary] = useState('');
   const [loading, setLoading] = useState(true);
@@ -121,41 +133,38 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // 2. Load Persisted Preferences & Initialize Location
+  // 2. Immediate On-load GPS Location Fetching
   useEffect(() => {
-    const restoreSettings = async () => {
+    const initLocationAndPreferences = async () => {
       const savedDark = await getUserPreferences('isDarkMode', false);
       const savedTemp = await getUserPreferences('tempUnit', 'C');
       const savedSpeed = await getUserPreferences('speedUnit', 'kmh');
-      const savedLoc = await getUserPreferences('selectedLocation', null);
       const savedNotifyLoc = await getUserPreferences('notifyLocation', null);
 
       setIsDarkMode(savedDark);
       setTempUnit(savedTemp);
       setSpeedUnit(savedSpeed);
-
       if (savedNotifyLoc) setNotifyLocation(savedNotifyLoc);
 
-      if (savedLoc) {
-        setSelectedLocation(savedLoc);
-      } else {
-        try {
-          let { status } = await Location.requestForegroundPermissionsAsync();
-          if (status === 'granted') {
-            let pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-            const gpsLoc = {
-              name: 'My Location',
-              country: 'GPS',
-              latitude: pos.coords.latitude,
-              longitude: pos.coords.longitude,
-            };
-            setSelectedLocation(gpsLoc);
-            setNotifyLocation(gpsLoc);
-          }
-        } catch (e) {}
+      try {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          let pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          const userGpsLoc = {
+            name: 'Present Location',
+            country: 'GPS Position',
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          };
+          setSelectedLocation(userGpsLoc);
+          setNotifyLocation(userGpsLoc);
+        }
+      } catch (e) {
+        // Fallback default coordinates
       }
     };
-    restoreSettings();
+
+    initLocationAndPreferences();
   }, []);
 
   // Save Preferences when changed
@@ -185,6 +194,7 @@ export default function App() {
           current: freshData.current,
           wmoDesc: wmo.desc,
           tempUnit,
+          isForNotification: false,
         });
         if (aiText) setAiSummary(aiText);
 
@@ -237,6 +247,7 @@ export default function App() {
           current: data.current,
           wmoDesc: wmo.desc,
           tempUnit,
+          isForNotification: false,
         });
         if (aiText) setAiSummary(aiText);
 
@@ -295,8 +306,16 @@ export default function App() {
           const curr = data.current;
           if (curr) {
             const currWmo = getWMOWeather(curr.weatherCode);
-            new Notification(`📍 ${notifyLocation.name} Live Alert`, {
-              body: `Now: ${currWmo.icon} ${convertTemp(curr.temp, tempUnit)}°${tempUnit} | ${currWmo.desc}`,
+            const shortAiAdvisory = await fetchKiloAiWeatherSummary({
+              locationName: notifyLocation.name,
+              current: curr,
+              wmoDesc: currWmo.desc,
+              tempUnit,
+              isForNotification: true,
+            });
+
+            new Notification(`📍 ${notifyLocation.name} Live Brief`, {
+              body: `${currWmo.icon} ${currWmo.desc} | ${convertTemp(curr.temp, tempUnit)}°${tempUnit}. ${shortAiAdvisory}`,
             });
             alert('Web browser push notification dispatched!');
           }
@@ -313,16 +332,24 @@ export default function App() {
         if (!curr) return;
 
         const currWmo = getWMOWeather(curr.weatherCode);
+        const shortAiAdvisory = await fetchKiloAiWeatherSummary({
+          locationName: notifyLocation.name,
+          current: curr,
+          wmoDesc: currWmo.desc,
+          tempUnit,
+          isForNotification: true,
+        });
+
         await Notifications.scheduleNotificationAsync({
           content: {
-            title: `📍 ${notifyLocation.name} Live Alert`,
-            body: `Now: ${currWmo.icon} ${convertTemp(curr.temp, tempUnit)}°${tempUnit} | ${currWmo.desc}`,
+            title: `📍 ${notifyLocation.name} Weather Brief`,
+            body: `${currWmo.icon} ${currWmo.desc} | ${convertTemp(curr.temp, tempUnit)}°${tempUnit}. ${shortAiAdvisory}`,
             sound: true,
           },
           trigger: null,
         });
 
-        alert('System push notification queued!');
+        alert('Instant AI Weather notification queued!');
       }
     } catch (err) {
       alert('Notification Error: ' + err.message);
@@ -353,7 +380,7 @@ export default function App() {
 
       let pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       const myLoc = {
-        name: 'Current Location',
+        name: 'Present Location',
         country: 'GPS Position',
         latitude: pos.coords.latitude,
         longitude: pos.coords.longitude,
@@ -377,6 +404,13 @@ export default function App() {
       onTouchStart={handleTouchStartWeb}
       onTouchMove={handleTouchMoveWeb}
     >
+      {/* Edge-to-Edge Status Bar Fix */}
+      <StatusBar
+        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+        backgroundColor="transparent"
+        translucent
+      />
+
       <ScrollView
         style={[
           styles.container,
@@ -385,7 +419,7 @@ export default function App() {
             width: '100%',
             maxWidth: containerMaxWidth,
             paddingHorizontal: 12,
-            paddingTop: Platform.OS === 'web' ? 4 : undefined,
+            paddingTop: Platform.OS === 'web' ? 4 : (StatusBar.currentHeight || 20),
           },
         ]}
         keyboardShouldPersistTaps="handled"
@@ -496,51 +530,54 @@ export default function App() {
           </Animated.View>
         )}
 
-        {/* Hamburger Menu */}
+        {/* Remodeled Hamburger Menu */}
         <Modal visible={isMenuOpen} transparent animationType="fade" onRequestClose={() => setIsMenuOpen(false)}>
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
-            <View style={{ width: '100%', maxWidth: 360, backgroundColor: theme.cardBg, borderRadius: 18, padding: 20 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <Text style={{ fontSize: 18, fontWeight: '800', color: theme.textPrimary }}>☰ Navigation Menu</Text>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+            <View style={{ width: '100%', maxWidth: 380, backgroundColor: theme.cardBg, borderRadius: 20, padding: 22 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+                <Text style={{ fontSize: 20, fontWeight: '800', color: theme.textPrimary }}>☁️ Meteo Navigation</Text>
                 <TouchableOpacity onPress={() => setIsMenuOpen(false)}>
                   <Text style={{ fontSize: 22, color: theme.textSecondary, fontWeight: 'bold' }}>✕</Text>
                 </TouchableOpacity>
               </View>
 
-              <View style={{ gap: 10, marginBottom: 10 }}>
+              <View style={{ gap: 12, marginBottom: 10 }}>
                 <TouchableOpacity
-                  style={{ backgroundColor: '#198754', paddingVertical: 12, borderRadius: 12, alignItems: 'center' }}
+                  style={{ backgroundColor: '#198754', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
                   onPress={() => {
                     setIsMenuOpen(false);
                     setIsArchiveOpen(true);
                   }}
                 >
                   <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 15 }}>📊 Climate Data Archive</Text>
+                  <Text style={{ color: '#ffffff', fontWeight: 'bold' }}>→</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={{ backgroundColor: '#0d6efd', paddingVertical: 12, borderRadius: 12, alignItems: 'center' }}
+                  style={{ backgroundColor: '#0d6efd', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
                   onPress={() => {
                     setIsMenuOpen(false);
                     setIsSettingsOpen(true);
                   }}
                 >
-                  <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 15 }}>⚙️ System Settings</Text>
+                  <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 15 }}>⚙️ System Preferences</Text>
+                  <Text style={{ color: '#ffffff', fontWeight: 'bold' }}>→</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={{ backgroundColor: notifyBadgeColor, paddingVertical: 12, borderRadius: 12, alignItems: 'center' }}
+                  style={{ backgroundColor: notifyBadgeColor, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
                   onPress={() => {
                     setIsMenuOpen(false);
                     setIsNotificationOpen(true);
                   }}
                 >
-                  <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 15 }}>🔔 Configure Alerts</Text>
+                  <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 15 }}>🔔 6 AM Briefs & Alerts</Text>
+                  <Text style={{ color: '#ffffff', fontWeight: 'bold' }}>→</Text>
                 </TouchableOpacity>
               </View>
 
               <TouchableOpacity
-                style={{ backgroundColor: theme.borderColor, paddingVertical: 10, borderRadius: 10, alignItems: 'center', marginTop: 6 }}
+                style={{ backgroundColor: theme.borderColor, paddingVertical: 12, borderRadius: 12, alignItems: 'center', marginTop: 8 }}
                 onPress={() => setIsMenuOpen(false)}
               >
                 <Text style={{ color: theme.textPrimary, fontWeight: 'bold' }}>Close Menu</Text>
@@ -592,4 +629,4 @@ export default function App() {
       </ScrollView>
     </View>
   );
-                }
+                  }  
