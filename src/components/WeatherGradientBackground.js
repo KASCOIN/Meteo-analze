@@ -11,63 +11,64 @@ try {
 
 /**
  * Returns a 3-stop dynamic atmospheric sky gradient based on WMO weather code & day/night
+ * Tuned for professional Google Pixel Weather aesthetic with high contrast & legibility
  */
 export const getWeatherGradient = (weatherCode, isDarkMode) => {
   if (isDarkMode) {
     if (weatherCode === 0 || weatherCode === 1) {
       // Clear sky at night: deep cosmic indigo & starry navy
-      return ['#080e1c', '#0f172a', '#1e293b'];
+      return ['#030712', '#0b1329', '#152243'];
     }
     if (weatherCode === 2 || weatherCode === 3) {
       // Overcast / Cloudy night: moody atmospheric slate
-      return ['#090d16', '#121824', '#1e2838'];
+      return ['#050811', '#0f1728', '#1a2638'];
     }
     if ((weatherCode >= 51 && weatherCode <= 67) || (weatherCode >= 80 && weatherCode <= 82)) {
       // Rainy night: oceanic midnight rain
-      return ['#070f1a', '#0d1d2d', '#152b3e'];
+      return ['#040a14', '#0c1a2d', '#14273d'];
     }
     if (weatherCode >= 95) {
       // Thunderstorm: moody electric violet
-      return ['#110c1c', '#1b142d', '#2c1e45'];
+      return ['#0a0614', '#170f29', '#26183e'];
     }
     if (weatherCode >= 71 && weatherCode <= 77) {
       // Snow: glacial dusk blue
-      return ['#0c1422', '#142136', '#1e324e'];
+      return ['#060c18', '#0f1a2d', '#182b45'];
     }
     if (weatherCode === 45 || weatherCode === 48) {
       // Fog: mystical mist grey-navy
-      return ['#0d1117', '#161c24', '#212936'];
+      return ['#080b10', '#111721', '#1c2432'];
     }
     // Default dark
-    return ['#080e1c', '#0f172a', '#1a2744'];
+    return ['#030712', '#0c1428', '#16223e'];
   } else {
-    // Day time
+    // Day time: luminous, fresh atmospheric daylight gradients
     if (weatherCode === 0 || weatherCode === 1) {
-      // Sunny clear sky: Google vibrant azure
-      return ['#1a73e8', '#4285f4', '#8ab4f8'];
+      // Sunny clear sky: radiant Google Sky Azure
+      return ['#3b82f6', '#60a5fa', '#dbeafe'];
     }
     if (weatherCode === 2 || weatherCode === 3) {
-      // Partly cloudy / Overcast: soft atmospheric cumulus blue
-      return ['#2d5b88', '#507eab', '#8db3d6'];
+      // Partly cloudy / Overcast: soft day cumulus
+      return ['#5c7694', '#85a2c2', '#dbeafe'];
     }
     if ((weatherCode >= 51 && weatherCode <= 67) || (weatherCode >= 80 && weatherCode <= 82)) {
-      // Rain: deep oceanic rain cloud
-      return ['#274765', '#3d6487', '#648dae'];
+      // Rain / Drizzle: fresh daylight slate rain
+      return ['#4f6d8d', '#7b9cb8', '#d3e4f5'];
     }
     if (weatherCode >= 95) {
-      // Thunderstorm: dramatic deep indigo
-      return ['#262243', '#40386b', '#625899'];
+      // Thunderstorm: electric daylight indigo
+      return ['#4f46e5', '#818cf8', '#e0e7ff'];
     }
     if (weatherCode >= 71 && weatherCode <= 77) {
       // Snow: crisp winter crystalline cyan
-      return ['#456d8e', '#6d95b8', '#a8c7e2'];
+      return ['#0284c7', '#38bdf8', '#e0f2fe'];
     }
     if (weatherCode === 45 || weatherCode === 48) {
-      // Fog: soft silver mist
-      return ['#425363', '#627587', '#93a5b5'];
+      // Fog: soft daylight silver mist
+      return ['#64748b', '#94a3b8', '#e2e8f0'];
     }
     // Default day
-    return ['#1967d2', '#3f83f8', '#76a9fa'];
+    return ['#2563eb', '#60a5fa', '#dbeafe'];
   }
 };
 
@@ -92,7 +93,7 @@ export const WeatherGradientBackground = ({
     );
   }
 
-  // Graceful fallback if LinearGradient is not available
+  // Graceful fallback
   return (
     <View style={[styles.container, { backgroundColor: colors[0] }, style]}>
       {children}
@@ -105,4 +106,3 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-

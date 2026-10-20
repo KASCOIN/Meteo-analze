@@ -444,10 +444,21 @@ export default function App() {
           {/* Header Section */}
           <View style={styles.headerRow}>
             <View style={{ flex: 1, marginRight: 8 }}>
-              <Text style={styles.header} numberOfLines={1}>
+              <Text
+                style={[
+                  styles.header,
+                  { color: isDarkMode ? '#ffffff' : '#0f172a' },
+                ]}
+                numberOfLines={1}
+              >
                 Meteo Analaze ☁️
               </Text>
-              <Text style={styles.subHeader}>
+              <Text
+                style={[
+                  styles.subHeader,
+                  { color: isDarkMode ? 'rgba(255, 255, 255, 0.75)' : '#475569' },
+                ]}
+              >
                 Atmospheric Research Portal
               </Text>
             </View>
@@ -464,7 +475,7 @@ export default function App() {
                 <Switch
                   value={isDarkMode}
                   onValueChange={setIsDarkMode}
-                  trackColor={{ false: 'rgba(255,255,255,0.3)', true: '#1a73e8' }}
+                  trackColor={{ false: 'rgba(255,255,255,0.4)', true: '#1a73e8' }}
                   thumbColor={isDarkMode ? '#ffffff' : '#f4f3f4'}
                 />
               </GlassView>
@@ -473,14 +484,15 @@ export default function App() {
                 style={[
                   styles.navButton,
                   {
-                    backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.14)' : 'rgba(255, 255, 255, 0.35)',
+                    backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.14)' : 'rgba(255, 255, 255, 0.65)',
+                    borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.20)' : 'rgba(255, 255, 255, 0.90)',
                     paddingHorizontal: 14,
                     height: 38,
                   },
                 ]}
                 onPress={() => setIsMenuOpen(true)}
               >
-                <Text style={styles.navButtonText}>☰</Text>
+                <Text style={[styles.navButtonText, { color: isDarkMode ? '#ffffff' : '#0f172a' }]}>☰</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -495,17 +507,23 @@ export default function App() {
               style={[
                 styles.searchInput,
                 {
-                  backgroundColor: theme.inputBg,
+                  backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.10)' : 'rgba(255, 255, 255, 0.88)',
                   color: isDarkMode ? '#ffffff' : '#0f172a',
-                  borderColor: theme.borderColor,
+                  borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.16)' : 'rgba(255, 255, 255, 0.95)',
                 },
               ]}
               placeholder="Search city globally..."
-              placeholderTextColor={isDarkMode ? 'rgba(255, 255, 255, 0.65)' : '#475569'}
+              placeholderTextColor={isDarkMode ? 'rgba(255, 255, 255, 0.65)' : '#64748b'}
               value={searchQuery}
               onChangeText={handleSearch}
             />
-            {isSearching && <ActivityIndicator size="small" color="#ffffff" style={styles.searchLoader} />}
+            {isSearching && (
+              <ActivityIndicator
+                size="small"
+                color={isDarkMode ? '#38bdf8' : '#1a73e8'}
+                style={styles.searchLoader}
+              />
+            )}
           </View>
 
           <TouchableOpacity style={styles.gpsButton} onPress={handleGetGPSLocation} disabled={isLocating}>

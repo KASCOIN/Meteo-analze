@@ -16,18 +16,11 @@ export const styles = StyleSheet.create({
     fontSize: 25,
     fontWeight: '900',
     letterSpacing: 0.3,
-    color: '#ffffff',
-    ...Platform.select({
-      web: {
-        textShadow: '0 2px 10px rgba(0, 0, 0, 0.28)',
-      },
-    }),
   },
   subHeader: {
     fontSize: 12.5,
     fontWeight: '600',
     marginTop: 2,
-    color: 'rgba(255, 255, 255, 0.85)',
     letterSpacing: 0.2,
   },
   actionNavGroup: {
