@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Animated, StyleSheet, Platform } from 'react-native';
 import { getWMOWeather } from '../utils/weatherHelpers';
 import { convertTemp, convertSpeed } from '../utils/unitConverters';
+import { GlassView } from './GlassView';
 
 export const WeatherHeroCard = ({
   location,
@@ -20,11 +21,11 @@ export const WeatherHeroCard = ({
   const wmo = getWMOWeather(current.weatherCode);
   const fc3Wmo = forecast3Hr ? getWMOWeather(forecast3Hr.weatherCode) : null;
 
-  let aiBadgeColor = '#198754';
+  let aiBadgeColor = '#34a853'; // Google Green
   if (current.humidity > 80 && current.weatherCode >= 50) {
-    aiBadgeColor = '#fd7e14';
+    aiBadgeColor = '#fbbc04'; // Google Amber
   } else if (current.temp > 30) {
-    aiBadgeColor = '#dc3545';
+    aiBadgeColor = '#ea4335'; // Google Red
   }
 
   const finalAiText =
@@ -39,7 +40,13 @@ export const WeatherHeroCard = ({
   const windGusts = current.windGusts || (current.windSpeed * 1.35).toFixed(1);
 
   return (
-    <View style={[styles.glassContainer, isDarkMode && styles.darkGlass]}>
+    <GlassView
+      isDarkMode={isDarkMode}
+      intensity={isDarkMode ? 45 : 60}
+      variant="card"
+      borderRadius={28}
+      style={styles.heroOuter}
+    >
       {/* 1. Location & Live Clock Header */}
       <View style={styles.topHeaderRow}>
         <View style={{ flex: 1, marginRight: 8 }}>
@@ -54,10 +61,16 @@ export const WeatherHeroCard = ({
           </Text>
         </View>
 
-        <View style={styles.liveBadgeContainer}>
+        <GlassView
+          isDarkMode={isDarkMode}
+          variant="chip"
+          borderRadius={20}
+          intensity={30}
+          style={styles.liveBadgeContainer}
+        >
           <Animated.View style={[styles.liveDot, { transform: [{ scale: pulseAnim }] }]} />
           <Text style={styles.liveBadgeText}>LIVE</Text>
-        </View>
+        </GlassView>
       </View>
 
       {/* 2. Main Temperature Banner */}
@@ -84,22 +97,40 @@ export const WeatherHeroCard = ({
       </View>
 
       {/* 3. Practical AI Lifestyle & Outfit Advisory Box */}
-      <View style={[styles.aiPanel, { borderLeftColor: aiBadgeColor }]}>
+      <GlassView
+        isDarkMode={isDarkMode}
+        variant="chip"
+        borderRadius={18}
+        intensity={30}
+        style={[styles.aiPanel, { borderLeftColor: aiBadgeColor }]}
+      >
         <View style={styles.aiHeaderRow}>
-          <Text style={styles.aiTagText}>👕 DAILY OUTFIT & LIFESTYLE ADVICE</Text>
+          <Text style={styles.aiTagText}>✨ AI METEO ADVISORY & OUTFIT</Text>
         </View>
         <Text style={styles.aiAdvisoryBody}>{finalAiText}</Text>
-      </View>
+      </GlassView>
 
       {/* 4. Telemetry Metrics Grid */}
       <View style={styles.telemetryGrid}>
-        <View style={styles.telemetryCard}>
+        <GlassView
+          isDarkMode={isDarkMode}
+          variant="chip"
+          borderRadius={18}
+          intensity={25}
+          style={styles.telemetryCard}
+        >
           <Text style={styles.telemetryIcon}>💧</Text>
           <Text style={styles.telemetryLabel}>Humidity</Text>
           <Text style={styles.telemetryValue}>{current.humidity}%</Text>
-        </View>
+        </GlassView>
 
-        <View style={styles.telemetryCard}>
+        <GlassView
+          isDarkMode={isDarkMode}
+          variant="chip"
+          borderRadius={18}
+          intensity={25}
+          style={styles.telemetryCard}
+        >
           <Text style={styles.telemetryIcon}>💨</Text>
           <Text style={styles.telemetryLabel}>Wind Speed</Text>
           <Text style={styles.telemetryValue}>
@@ -108,40 +139,70 @@ export const WeatherHeroCard = ({
           <Text style={styles.telemetrySub}>
             Gusts: {convertSpeed(parseFloat(windGusts), speedUnit)}
           </Text>
-        </View>
+        </GlassView>
 
-        <View style={styles.telemetryCard}>
+        <GlassView
+          isDarkMode={isDarkMode}
+          variant="chip"
+          borderRadius={18}
+          intensity={25}
+          style={styles.telemetryCard}
+        >
           <Text style={styles.telemetryIcon}>☀️</Text>
           <Text style={styles.telemetryLabel}>UV Index</Text>
           <Text style={styles.telemetryValue}>{uvIndex} / 11</Text>
           <Text style={styles.telemetrySub}>{uvIndex >= 6 ? 'Sunscreen' : 'Safe'}</Text>
-        </View>
+        </GlassView>
 
-        <View style={styles.telemetryCard}>
+        <GlassView
+          isDarkMode={isDarkMode}
+          variant="chip"
+          borderRadius={18}
+          intensity={25}
+          style={styles.telemetryCard}
+        >
           <Text style={styles.telemetryIcon}>⏲️</Text>
           <Text style={styles.telemetryLabel}>Pressure</Text>
           <Text style={styles.telemetryValue}>{pressure} hPa</Text>
-        </View>
+        </GlassView>
 
-        <View style={styles.telemetryCard}>
+        <GlassView
+          isDarkMode={isDarkMode}
+          variant="chip"
+          borderRadius={18}
+          intensity={25}
+          style={styles.telemetryCard}
+        >
           <Text style={styles.telemetryIcon}>☁️</Text>
           <Text style={styles.telemetryLabel}>Cloud Cover</Text>
           <Text style={styles.telemetryValue}>{cloudCover}%</Text>
-        </View>
+        </GlassView>
 
-        <View style={styles.telemetryCard}>
+        <GlassView
+          isDarkMode={isDarkMode}
+          variant="chip"
+          borderRadius={18}
+          intensity={25}
+          style={styles.telemetryCard}
+        >
           <Text style={styles.telemetryIcon}>👁️</Text>
           <Text style={styles.telemetryLabel}>Visibility</Text>
           <Text style={styles.telemetryValue}>{visibility} km</Text>
-        </View>
+        </GlassView>
       </View>
 
       {/* 5. 3-Hour Forecast Banner */}
       {forecast3Hr && (
-        <View style={styles.forecastBox}>
+        <GlassView
+          isDarkMode={isDarkMode}
+          variant="chip"
+          borderRadius={18}
+          intensity={30}
+          style={styles.forecastBox}
+        >
           <Text style={styles.forecastHeader}>EXPECTED AT {forecast3Hr.time}</Text>
           <View style={styles.forecastRow}>
-            <Text style={{ fontSize: 18 }}>{fc3Wmo.icon}</Text>
+            <Text style={{ fontSize: 20 }}>{fc3Wmo.icon}</Text>
             <Text style={styles.forecastText}>
               {convertTemp(forecast3Hr.temp, tempUnit)}°{tempUnit} — {fc3Wmo.desc}
             </Text>
@@ -150,128 +211,130 @@ export const WeatherHeroCard = ({
               {convertSpeed(forecast3Hr.windSpeed, speedUnit)} {speedUnit}
             </Text>
           </View>
-        </View>
+        </GlassView>
       )}
-    </View>
+    </GlassView>
   );
 };
 
 const styles = StyleSheet.create({
-  glassContainer: {
-    backgroundColor: 'rgba(13, 110, 253, 0.92)',
-    borderRadius: 24,
-    padding: 20,
+  heroOuter: {
+    padding: 22,
     marginVertical: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
     ...Platform.select({
       web: {
-        boxShadow: '0 10px 36px 0 rgba(13, 110, 253, 0.38)',
+        boxShadow: '0 16px 40px 0 rgba(0, 0, 0, 0.18)',
       },
       default: {
         elevation: 8,
       },
     }),
   },
-  darkGlass: {
-    backgroundColor: 'rgba(20, 28, 45, 0.95)',
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-  },
   topHeaderRow: {
     flexDirection: 'row',
-    justify: 'space-between',
+    justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 12,
   },
   locationTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '800',
     color: '#ffffff',
+    letterSpacing: 0.2,
+    ...Platform.select({
+      web: {
+        textShadow: '0 2px 8px rgba(0,0,0,0.3)',
+      },
+    }),
   },
   coordsText: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.75)',
-    marginTop: 1,
+    fontSize: 11.5,
+    color: 'rgba(255, 255, 255, 0.78)',
+    marginTop: 2,
     fontWeight: '600',
+    letterSpacing: 0.3,
   },
   liveClockText: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 12.5,
+    color: 'rgba(255, 255, 255, 0.92)',
     marginTop: 4,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   clockTimeHighlight: {
-    color: '#00f2fe',
+    color: '#67e8f9',
     fontWeight: '800',
   },
   liveBadgeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.22)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     gap: 6,
   },
   liveDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#00ff88',
+    backgroundColor: '#22c55e',
   },
   liveBadgeText: {
     fontSize: 10.5,
     fontWeight: '900',
     color: '#ffffff',
-    letterSpacing: 0.6,
+    letterSpacing: 0.8,
   },
   mainMetricsRow: {
     flexDirection: 'row',
-    justify: 'space-between',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 10,
-    marginBottom: 10,
+    paddingVertical: 12,
+    marginBottom: 12,
   },
   tempLeftGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   weatherIcon: {
-    fontSize: 40,
+    fontSize: 46,
   },
   tempValue: {
-    fontSize: 38,
+    fontSize: 44,
     fontWeight: '900',
     color: '#ffffff',
-    lineHeight: 44,
+    lineHeight: 50,
+    letterSpacing: -1,
+    ...Platform.select({
+      web: {
+        textShadow: '0 4px 16px rgba(0,0,0,0.25)',
+      },
+    }),
   },
   tempUnitText: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
     color: 'rgba(255, 255, 255, 0.85)',
     marginLeft: 2,
+    marginTop: 4,
   },
   conditionRightGroup: {
     alignItems: 'flex-end',
   },
   conditionTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '800',
     color: '#ffffff',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   subMetric: {
-    fontSize: 12,
+    fontSize: 12.5,
     color: 'rgba(255, 255, 255, 0.88)',
-    fontWeight: '500',
-    lineHeight: 17,
+    fontWeight: '600',
+    lineHeight: 18,
   },
   aiPanel: {
-    backgroundColor: 'rgba(255, 255, 255, 0.16)',
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 14,
+    padding: 14,
+    marginBottom: 16,
     borderLeftWidth: 4,
   },
   aiHeaderRow: {
@@ -280,66 +343,60 @@ const styles = StyleSheet.create({
   aiTagText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#00f2fe',
-    letterSpacing: 0.5,
+    color: '#38bdf8',
+    letterSpacing: 0.6,
   },
   aiAdvisoryBody: {
-    fontSize: 12.5,
+    fontSize: 13,
     color: '#ffffff',
-    lineHeight: 18,
+    lineHeight: 19,
     fontWeight: '500',
   },
   telemetryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
-    marginBottom: 14,
+    marginBottom: 16,
   },
   telemetryCard: {
     flex: 1,
     minWidth: '28%',
-    backgroundColor: 'rgba(0, 0, 0, 0.18)',
-    borderRadius: 14,
-    padding: 10,
+    padding: 12,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   telemetryIcon: {
-    fontSize: 18,
-    marginBottom: 2,
+    fontSize: 20,
+    marginBottom: 3,
   },
   telemetryLabel: {
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '700',
-    color: 'rgba(255, 255, 255, 0.75)',
-    letterSpacing: 0.3,
+    color: 'rgba(255, 255, 255, 0.78)',
+    letterSpacing: 0.4,
     marginBottom: 2,
     textAlign: 'center',
   },
   telemetryValue: {
-    fontSize: 13,
+    fontSize: 13.5,
     fontWeight: '800',
     color: '#ffffff',
     textAlign: 'center',
   },
   telemetrySub: {
     fontSize: 9.5,
-    color: '#00f2fe',
-    fontWeight: '600',
+    color: '#67e8f9',
+    fontWeight: '700',
     marginTop: 2,
   },
   forecastBox: {
-    backgroundColor: 'rgba(0, 0, 0, 0.22)',
-    borderRadius: 14,
-    padding: 12,
+    padding: 14,
   },
   forecastHeader: {
-    fontSize: 9.5,
+    fontSize: 10,
     fontWeight: '800',
-    color: 'rgba(255, 255, 255, 0.7)',
-    letterSpacing: 0.6,
-    marginBottom: 4,
+    color: 'rgba(255, 255, 255, 0.75)',
+    letterSpacing: 0.8,
+    marginBottom: 6,
   },
   forecastRow: {
     flexDirection: 'row',
@@ -348,13 +405,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   forecastText: {
-    fontSize: 13.5,
+    fontSize: 14,
     fontWeight: '700',
     color: '#ffffff',
   },
   forecastSubText: {
-    fontSize: 11.5,
-    color: 'rgba(255, 255, 255, 0.82)',
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.85)',
   },
 });
-  

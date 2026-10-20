@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import * as Location from 'expo-location';
 import { searchLocations } from '../services/geocodingEngine';
+import { GlassView } from './GlassView';
 
 export const NotificationModal = ({
   isOpen,
@@ -77,10 +78,18 @@ export const NotificationModal = ({
 
   const colors = ['#0d6efd', '#198754', '#dc3545', '#fd7e14', '#6f42c1'];
 
+  const isDarkMode = theme?.textPrimary !== '#0f172a';
+
   return (
     <Modal visible={isOpen} transparent animationType="fade" onRequestClose={onClose}>
       <View style={modalStyles.backdrop}>
-        <View style={[modalStyles.card, { backgroundColor: theme.cardBg, borderColor: theme.borderColor }]}>
+        <GlassView
+          variant="elevated"
+          isDarkMode={isDarkMode}
+          borderRadius={26}
+          intensity={50}
+          style={[modalStyles.card, { borderColor: theme.borderColor }]}
+        >
           {/* Header */}
           <View style={modalStyles.headerRow}>
             <View>
@@ -228,11 +237,17 @@ export const NotificationModal = ({
               <Text style={modalStyles.testButtonText}>🔔 Dispatch Instant AI Alert</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[modalStyles.closeModalButton, { backgroundColor: theme.borderColor }]} onPress={onClose}>
+            <TouchableOpacity
+              style={[
+                modalStyles.closeModalButton,
+                { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.06)' },
+              ]}
+              onPress={onClose}
+            >
               <Text style={{ color: theme.textPrimary, fontWeight: 'bold' }}>Save & Close Settings</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </GlassView>
       </View>
     </Modal>
   );

@@ -1,19 +1,22 @@
 import React from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { GlassView } from './GlassView';
 
 export const CustomAlertModal = ({ visible, title, message, type = 'info', onClose, theme }) => {
   if (!visible) return null;
 
+  const isDarkMode = theme?.textPrimary !== '#0f172a';
+
   const getTypeStyle = () => {
     switch (type) {
       case 'success':
-        return { icon: '✅', accent: '#198754', badgeBg: 'rgba(25, 135, 84, 0.15)' };
+        return { icon: '✅', accent: '#1e8e3e', badgeBg: 'rgba(30, 142, 62, 0.2)' };
       case 'warning':
-        return { icon: '⚠️', accent: '#fd7e14', badgeBg: 'rgba(253, 126, 20, 0.15)' };
+        return { icon: '⚠️', accent: '#f9ab00', badgeBg: 'rgba(249, 171, 0, 0.2)' };
       case 'error':
-        return { icon: '❌', accent: '#dc3545', badgeBg: 'rgba(220, 53, 69, 0.15)' };
+        return { icon: '❌', accent: '#d93025', badgeBg: 'rgba(217, 48, 37, 0.2)' };
       default:
-        return { icon: '🔔', accent: '#0d6efd', badgeBg: 'rgba(13, 110, 253, 0.15)' };
+        return { icon: '🔔', accent: '#1a73e8', badgeBg: 'rgba(26, 115, 232, 0.2)' };
     }
   };
 
@@ -22,11 +25,14 @@ export const CustomAlertModal = ({ visible, title, message, type = 'info', onClo
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={alertStyles.backdrop}>
-        <View
+        <GlassView
+          variant="elevated"
+          isDarkMode={isDarkMode}
+          borderRadius={24}
+          intensity={50}
           style={[
             alertStyles.card,
             {
-              backgroundColor: theme?.cardBg || '#1e293b',
               borderColor: styleConfig.accent,
             },
           ]}
@@ -49,7 +55,7 @@ export const CustomAlertModal = ({ visible, title, message, type = 'info', onClo
           >
             <Text style={alertStyles.confirmButtonText}>OK, Got it</Text>
           </TouchableOpacity>
-        </View>
+        </GlassView>
       </View>
     </Modal>
   );
@@ -58,7 +64,7 @@ export const CustomAlertModal = ({ visible, title, message, type = 'info', onClo
 const alertStyles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.72)',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -66,12 +72,11 @@ const alertStyles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 380,
-    borderRadius: 22,
-    padding: 22,
+    padding: 24,
     alignItems: 'center',
     borderWidth: 1.5,
     ...Platform.select({
-      web: { boxShadow: '0 12px 32px rgba(0,0,0,0.5)' },
+      web: { boxShadow: '0 16px 40px rgba(0,0,0,0.4)' },
       default: { elevation: 12 },
     }),
   },
@@ -81,30 +86,29 @@ const alertStyles = StyleSheet.create({
     borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   title: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: '800',
     textAlign: 'center',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   message: {
-    fontSize: 13.5,
+    fontSize: 14,
     textAlign: 'center',
-    lineHeight: 19,
-    marginBottom: 18,
+    lineHeight: 20,
+    marginBottom: 20,
   },
   confirmButton: {
     width: '100%',
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingVertical: 13,
+    borderRadius: 16,
     alignItems: 'center',
   },
   confirmButtonText: {
     color: '#ffffff',
     fontWeight: '800',
-    fontSize: 14,
+    fontSize: 14.5,
   },
 });
-            

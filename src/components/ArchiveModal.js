@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { searchLocations } from '../services/geocodingEngine';
 import { exportArchiveCSV } from '../services/csvExporter';
+import { GlassView } from './GlassView';
 
 export const ArchiveModal = ({ isOpen, onClose, defaultLocation, theme }) => {
   const [targetLocation, setTargetLocation] = useState(defaultLocation);
@@ -65,10 +66,18 @@ export const ArchiveModal = ({ isOpen, onClose, defaultLocation, theme }) => {
     }
   };
 
+  const isDarkMode = theme?.textPrimary !== '#0f172a';
+
   return (
     <Modal visible={isOpen} transparent animationType="fade" onRequestClose={onClose}>
       <View style={modalStyles.backdrop}>
-        <View style={[modalStyles.card, { backgroundColor: theme.cardBg, borderColor: theme.borderColor }]}>
+        <GlassView
+          variant="elevated"
+          isDarkMode={isDarkMode}
+          borderRadius={26}
+          intensity={50}
+          style={[modalStyles.card, { borderColor: theme.borderColor }]}
+        >
           
           {/* Header */}
           <View style={modalStyles.headerRow}>
@@ -198,14 +207,17 @@ export const ArchiveModal = ({ isOpen, onClose, defaultLocation, theme }) => {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[modalStyles.cancelButton, { backgroundColor: theme.borderColor }]}
+              style={[
+                modalStyles.cancelButton,
+                { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.06)' },
+              ]}
               onPress={onClose}
             >
               <Text style={{ color: theme.textPrimary, fontWeight: 'bold' }}>Cancel</Text>
             </TouchableOpacity>
           </View>
 
-        </View>
+        </GlassView>
       </View>
     </Modal>
   );

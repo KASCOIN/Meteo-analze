@@ -1,5 +1,6 @@
 import React from 'react';
 import { Modal, View, Text, TouchableOpacity, Switch, ScrollView, Linking, Platform } from 'react-native';
+import { GlassView } from './GlassView';
 
 export const SettingsModal = ({
   isOpen,
@@ -41,10 +42,15 @@ export const SettingsModal = ({
   return (
     <Modal visible={isOpen} transparent animationType="fade" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
-        <View style={{ width: '100%', maxWidth: 450, backgroundColor: theme.cardBg, borderRadius: 18, padding: 20, maxHeight: '88%' }}>
-          
+        <GlassView
+          variant="elevated"
+          isDarkMode={isDarkMode}
+          borderRadius={26}
+          intensity={50}
+          style={{ width: '100%', maxWidth: 450, padding: 22, maxHeight: '88%' }}
+        >
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <Text style={{ fontSize: 20, fontWeight: '800', color: theme.textPrimary }}>⚙️ System Settings</Text>
+            <Text style={{ fontSize: 21, fontWeight: '800', color: theme.textPrimary }}>⚙️ System Settings</Text>
             <TouchableOpacity onPress={onClose} style={{ padding: 4 }}>
               <Text style={{ fontSize: 22, color: theme.textSecondary, fontWeight: 'bold' }}>✕</Text>
             </TouchableOpacity>
@@ -52,19 +58,27 @@ export const SettingsModal = ({
 
           <ScrollView style={{ marginBottom: 14 }}>
             {/* Theme Toggle */}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.borderColor }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.borderColor }}>
               <Text style={{ fontSize: 15, color: theme.textPrimary, fontWeight: '600' }}>Dark Theme Mode</Text>
-              <Switch value={isDarkMode} onValueChange={setIsDarkMode} trackColor={{ false: '#767577', true: '#0d6efd' }} />
+              <Switch value={isDarkMode} onValueChange={setIsDarkMode} trackColor={{ false: 'rgba(255,255,255,0.3)', true: '#1a73e8' }} />
             </View>
 
             {/* Units Selection */}
-            <View style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.borderColor }}>
-              <Text style={{ fontSize: 14, color: theme.textPrimary, fontWeight: '600', marginBottom: 8 }}>Temperature Unit</Text>
+            <View style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.borderColor }}>
+              <Text style={{ fontSize: 14, color: theme.textPrimary, fontWeight: '600', marginBottom: 10 }}>Temperature Unit</Text>
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 {['C', 'F', 'K'].map((u) => (
                   <TouchableOpacity
                     key={u}
-                    style={{ flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: tempUnit === u ? '#0d6efd' : theme.inputBg, alignItems: 'center' }}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 10,
+                      borderRadius: 14,
+                      backgroundColor: tempUnit === u ? '#1a73e8' : theme.inputBg,
+                      alignItems: 'center',
+                      borderWidth: 1,
+                      borderColor: tempUnit === u ? '#1a73e8' : theme.borderColor,
+                    }}
                     onPress={() => setTempUnit(u)}
                   >
                     <Text style={{ color: tempUnit === u ? '#fff' : theme.textPrimary, fontWeight: 'bold' }}>°{u}</Text>
@@ -73,13 +87,21 @@ export const SettingsModal = ({
               </View>
             </View>
 
-            <View style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.borderColor }}>
-              <Text style={{ fontSize: 14, color: theme.textPrimary, fontWeight: '600', marginBottom: 8 }}>Wind Speed Unit</Text>
+            <View style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.borderColor }}>
+              <Text style={{ fontSize: 14, color: theme.textPrimary, fontWeight: '600', marginBottom: 10 }}>Wind Speed Unit</Text>
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 {['kmh', 'ms', 'mph'].map((u) => (
                   <TouchableOpacity
                     key={u}
-                    style={{ flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: speedUnit === u ? '#0d6efd' : theme.inputBg, alignItems: 'center' }}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 10,
+                      borderRadius: 14,
+                      backgroundColor: speedUnit === u ? '#1a73e8' : theme.inputBg,
+                      alignItems: 'center',
+                      borderWidth: 1,
+                      borderColor: speedUnit === u ? '#1a73e8' : theme.borderColor,
+                    }}
                     onPress={() => setSpeedUnit(u)}
                   >
                     <Text style={{ color: speedUnit === u ? '#fff' : theme.textPrimary, fontWeight: 'bold' }}>{u.toUpperCase()}</Text>
@@ -89,9 +111,17 @@ export const SettingsModal = ({
             </View>
 
             {/* Actions */}
-            <View style={{ paddingVertical: 12 }}>
+            <View style={{ paddingVertical: 14 }}>
               <TouchableOpacity
-                style={{ backgroundColor: '#0d6efd', paddingVertical: 11, borderRadius: 10, alignItems: 'center', marginBottom: 8 }}
+                style={{
+                  backgroundColor: '#1a73e8',
+                  paddingVertical: 12,
+                  borderRadius: 16,
+                  alignItems: 'center',
+                  marginBottom: 8,
+                  borderWidth: 1,
+                  borderColor: 'rgba(255, 255, 255, 0.25)',
+                }}
                 onPress={() => {
                   onClose();
                   if (onOpenAlerts) onOpenAlerts();
@@ -102,41 +132,48 @@ export const SettingsModal = ({
             </View>
 
             {/* In-App Data Credits & Developer Info */}
-            <View style={{ borderTopWidth: 1, borderTopColor: theme.borderColor, paddingTop: 12 }}>
-              <Text style={{ fontSize: 13, fontWeight: '800', color: '#198754', letterSpacing: 0.5, marginBottom: 8 }}>
+            <View style={{ borderTopWidth: 1, borderTopColor: theme.borderColor, paddingTop: 14 }}>
+              <Text style={{ fontSize: 12.5, fontWeight: '800', color: '#34a853', letterSpacing: 0.5, marginBottom: 10 }}>
                 DATA CREDITS & DEVELOPER CONTACT
               </Text>
 
-              <TouchableOpacity style={{ backgroundColor: theme.inputBg, padding: 10, borderRadius: 10, marginBottom: 6 }} onPress={handleSendEmail}>
+              <TouchableOpacity style={{ backgroundColor: theme.inputBg, padding: 12, borderRadius: 14, marginBottom: 8, borderWidth: 1, borderColor: theme.borderLight }} onPress={handleSendEmail}>
                 <Text style={{ fontSize: 11, color: theme.textSecondary }}>Email Support</Text>
-                <Text style={{ fontSize: 13, fontWeight: 'bold', color: theme.textPrimary }}>✉️ {EMAIL_ADDRESS}</Text>
+                <Text style={{ fontSize: 13, fontWeight: 'bold', color: theme.textPrimary, marginTop: 2 }}>✉️ {EMAIL_ADDRESS}</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={{ backgroundColor: theme.inputBg, padding: 10, borderRadius: 10, marginBottom: 6 }} onPress={() => handleOpenLink(PORTFOLIO_URL)}>
+              <TouchableOpacity style={{ backgroundColor: theme.inputBg, padding: 12, borderRadius: 14, marginBottom: 8, borderWidth: 1, borderColor: theme.borderLight }} onPress={() => handleOpenLink(PORTFOLIO_URL)}>
                 <Text style={{ fontSize: 11, color: theme.textSecondary }}>Developer Portfolio</Text>
-                <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#0d6efd' }}>🌐 View Portfolio ↗</Text>
+                <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#1a73e8', marginTop: 2 }}>🌐 View Portfolio ↗</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={{ backgroundColor: theme.inputBg, padding: 10, borderRadius: 10, marginBottom: 8 }} onPress={() => handleOpenLink(GITHUB_URL)}>
+              <TouchableOpacity style={{ backgroundColor: theme.inputBg, padding: 12, borderRadius: 14, marginBottom: 8, borderWidth: 1, borderColor: theme.borderLight }} onPress={() => handleOpenLink(GITHUB_URL)}>
                 <Text style={{ fontSize: 11, color: theme.textSecondary }}>Source Code</Text>
-                <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#0d6efd' }}>💻 GitHub Repository ↗</Text>
+                <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#1a73e8', marginTop: 2 }}>💻 GitHub Repository ↗</Text>
               </TouchableOpacity>
 
-              <View style={{ backgroundColor: theme.inputBg, padding: 10, borderRadius: 10 }}>
+              <View style={{ backgroundColor: theme.inputBg, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: theme.borderLight }}>
                 <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.textPrimary }}>🌤️ Open-Meteo API</Text>
-                <Text style={{ fontSize: 11, color: theme.textSecondary, marginTop: 2 }}>
+                <Text style={{ fontSize: 11, color: theme.textSecondary, marginTop: 3, lineHeight: 16 }}>
                   Global model outputs & reanalysis weather datasets licensed under CC BY 4.0.
                 </Text>
               </View>
             </View>
           </ScrollView>
 
-          <TouchableOpacity style={{ backgroundColor: theme.borderColor, paddingVertical: 12, borderRadius: 10, alignItems: 'center' }} onPress={onClose}>
+          <TouchableOpacity
+            style={{
+              backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.06)',
+              paddingVertical: 12,
+              borderRadius: 14,
+              alignItems: 'center',
+            }}
+            onPress={onClose}
+          >
             <Text style={{ color: theme.textPrimary, fontWeight: 'bold' }}>Close Settings</Text>
           </TouchableOpacity>
-        </View>
+        </GlassView>
       </View>
     </Modal>
   );
 };
-              

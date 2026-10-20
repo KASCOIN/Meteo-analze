@@ -1,8 +1,11 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Platform, StyleSheet } from 'react-native';
+import { GlassView } from './GlassView';
 
 export const Footer = ({ theme }) => {
   if (Platform.OS !== 'web') return null;
+
+  const isDarkMode = theme?.textPrimary !== '#0f172a';
 
   const EMAIL_ADDRESS = 'nwosukasie@gmail.com';
   const GITHUB_URL = 'https://github.com/KASCOIN';
@@ -21,7 +24,13 @@ export const Footer = ({ theme }) => {
   };
 
   return (
-    <View style={[footerStyles.container, { borderTopColor: theme.borderColor, backgroundColor: theme.cardBg }]}>
+    <GlassView
+      variant="surface"
+      isDarkMode={isDarkMode}
+      borderRadius={24}
+      intensity={35}
+      style={footerStyles.container}
+    >
       <View style={footerStyles.innerContent}>
         {/* Brand Section */}
         <View style={footerStyles.brandSection}>
@@ -35,13 +44,13 @@ export const Footer = ({ theme }) => {
         <View style={footerStyles.linksSection}>
           <Text style={[footerStyles.sectionHeader, { color: theme.textPrimary }]}>Developer Contact</Text>
           <TouchableOpacity onPress={handleSendEmail} style={footerStyles.linkItem}>
-            <Text style={{ fontSize: 13, color: '#0d6efd', fontWeight: '600' }}>✉️ {EMAIL_ADDRESS}</Text>
+            <Text style={{ fontSize: 13, color: '#1a73e8', fontWeight: '600' }}>✉️ {EMAIL_ADDRESS}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => handleOpenLink(PORTFOLIO_URL)} style={footerStyles.linkItem}>
-            <Text style={{ fontSize: 13, color: '#0d6efd', fontWeight: '600' }}>🌐 Developer Portfolio ↗</Text>
+            <Text style={{ fontSize: 13, color: '#1a73e8', fontWeight: '600' }}>🌐 Developer Portfolio ↗</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => handleOpenLink(GITHUB_URL)} style={footerStyles.linkItem}>
-            <Text style={{ fontSize: 13, color: '#0d6efd', fontWeight: '600' }}>💻 GitHub Repository ↗</Text>
+            <Text style={{ fontSize: 13, color: '#1a73e8', fontWeight: '600' }}>💻 GitHub Repository ↗</Text>
           </TouchableOpacity>
         </View>
 
@@ -68,19 +77,18 @@ export const Footer = ({ theme }) => {
           © {new Date().getFullYear()} Meteo Analaze. Engineered for meteorological research and field observations.
         </Text>
       </View>
-    </View>
+    </GlassView>
   );
 };
 
 const footerStyles = StyleSheet.create({
   container: {
-    borderTopWidth: 1,
     paddingTop: 24,
     paddingBottom: 24,
-    paddingHorizontal: 18,
-    marginTop: 30,
+    paddingHorizontal: 20,
+    marginTop: 26,
+    marginBottom: 20,
     width: '100%',
-    borderRadius: 16,
   },
   innerContent: {
     flexDirection: 'row',
@@ -141,4 +149,3 @@ const footerStyles = StyleSheet.create({
     textAlign: 'center',
   },
 });
-          

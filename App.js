@@ -42,6 +42,8 @@ import { SettingsModal } from './src/components/SettingsModal';
 import { Footer } from './src/components/Footer';
 import { OfflineBanner } from './src/components/OfflineBanner';
 import { CustomAlertModal } from './src/components/CustomAlertModal';
+import { GlassView } from './src/components/GlassView';
+import { WeatherGradientBackground } from './src/components/WeatherGradientBackground';
 
 const BACKGROUND_WEATHER_TASK = 'BACKGROUND_WEATHER_TASK';
 
@@ -416,54 +418,72 @@ export default function App() {
       onTouchStart={handleTouchStartWeb}
       onTouchMove={handleTouchMoveWeb}
     >
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      <ScrollView
-        style={[
-          styles.container,
-          {
-            backgroundColor: theme.bg,
-            width: '100%',
-            maxWidth: containerMaxWidth,
-            paddingHorizontal: 12,
-            paddingTop: Platform.OS === 'web' ? 4 : (StatusBar.currentHeight || 20),
-          },
-        ]}
-        keyboardShouldPersistTaps="handled"
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleManualRefresh} tintColor="#0d6efd" colors={['#0d6efd']} />
-        }
+      <WeatherGradientBackground
+        weatherCode={weatherPayload?.current?.weatherCode}
+        isDarkMode={isDarkMode}
+        style={{ flex: 1, width: '100%', alignItems: 'center' }}
       >
-        {/* Header Section */}
-        <View style={styles.headerRow}>
-          <View style={{ flex: 1, marginRight: 8 }}>
-            <Text style={[styles.header, { color: theme.textPrimary }]} numberOfLines={1}>
-              Meteo Analaze ☁️
-            </Text>
-            <Text style={[styles.subHeader, { color: theme.textSecondary }]}>
-              Atmospheric Research Portal
-            </Text>
-          </View>
-
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-              <Text style={{ fontSize: 13 }}>{isDarkMode ? '🌙' : '☀️'}</Text>
-              <Switch
-                value={isDarkMode}
-                onValueChange={setIsDarkMode}
-                trackColor={{ false: '#767577', true: '#0d6efd' }}
-                thumbColor={isDarkMode ? '#ffffff' : '#f4f3f4'}
-              />
+        <ScrollView
+          style={[
+            styles.container,
+            {
+              backgroundColor: 'transparent',
+              width: '100%',
+              maxWidth: containerMaxWidth,
+              paddingHorizontal: 12,
+              paddingTop: Platform.OS === 'web' ? 8 : (StatusBar.currentHeight || 20),
+            },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleManualRefresh} tintColor="#ffffff" colors={['#1a73e8']} />
+          }
+        >
+          {/* Header Section */}
+          <View style={styles.headerRow}>
+            <View style={{ flex: 1, marginRight: 8 }}>
+              <Text style={styles.header} numberOfLines={1}>
+                Meteo Analaze ☁️
+              </Text>
+              <Text style={styles.subHeader}>
+                Atmospheric Research Portal
+              </Text>
             </View>
 
-            <TouchableOpacity
-              style={[styles.navButton, { backgroundColor: '#0d6efd', paddingHorizontal: 12, height: 38 }]}
-              onPress={() => setIsMenuOpen(true)}
-            >
-              <Text style={styles.navButtonText}>☰</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <GlassView
+                variant="chip"
+                isDarkMode={isDarkMode}
+                borderRadius={20}
+                intensity={25}
+                style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4, gap: 4 }}
+              >
+                <Text style={{ fontSize: 13 }}>{isDarkMode ? '🌙' : '☀️'}</Text>
+                <Switch
+                  value={isDarkMode}
+                  onValueChange={setIsDarkMode}
+                  trackColor={{ false: 'rgba(255,255,255,0.3)', true: '#1a73e8' }}
+                  thumbColor={isDarkMode ? '#ffffff' : '#f4f3f4'}
+                />
+              </GlassView>
+
+              <TouchableOpacity
+                style={[
+                  styles.navButton,
+                  {
+                    backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.14)' : 'rgba(255, 255, 255, 0.35)',
+                    paddingHorizontal: 14,
+                    height: 38,
+                  },
+                ]}
+                onPress={() => setIsMenuOpen(true)}
+              >
+                <Text style={styles.navButtonText}>☰</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
 
         {/* Offline Status Indicator */}
         <OfflineBanner isOffline={isOffline} />
@@ -472,13 +492,20 @@ export default function App() {
         <View style={styles.searchRow}>
           <View style={styles.searchSection}>
             <TextInput
-              style={[styles.searchInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.borderColor }]}
+              style={[
+                styles.searchInput,
+                {
+                  backgroundColor: theme.inputBg,
+                  color: isDarkMode ? '#ffffff' : '#0f172a',
+                  borderColor: theme.borderColor,
+                },
+              ]}
               placeholder="Search city globally..."
-              placeholderTextColor={theme.textSecondary}
+              placeholderTextColor={isDarkMode ? 'rgba(255, 255, 255, 0.65)' : '#475569'}
               value={searchQuery}
               onChangeText={handleSearch}
             />
-            {isSearching && <ActivityIndicator size="small" color="#0d6efd" style={styles.searchLoader} />}
+            {isSearching && <ActivityIndicator size="small" color="#ffffff" style={styles.searchLoader} />}
           </View>
 
           <TouchableOpacity style={styles.gpsButton} onPress={handleGetGPSLocation} disabled={isLocating}>
@@ -493,11 +520,16 @@ export default function App() {
         </View>
 
         {searchResults.length > 0 && (
-          <View style={[styles.resultsContainer, { backgroundColor: theme.cardBg, borderColor: theme.borderColor }]}>
+          <GlassView
+            variant="elevated"
+            isDarkMode={isDarkMode}
+            borderRadius={20}
+            style={[styles.resultsContainer, { borderColor: theme.borderColor }]}
+          >
             {searchResults.map((item) => (
               <TouchableOpacity
                 key={`${item.id}-${item.latitude}-${item.longitude}`}
-                style={[styles.resultItem, { borderBottomColor: theme.borderColor }]}
+                style={[styles.resultItem, { borderBottomColor: theme.borderLight }]}
                 onPress={() => {
                   setSelectedLocation({
                     name: item.name,
@@ -509,19 +541,19 @@ export default function App() {
                   setSearchResults([]);
                 }}
               >
-                <Text style={[styles.resultText, { color: theme.textPrimary }]}>
+                <Text style={[styles.resultText, { color: isDarkMode ? '#f8fafc' : '#0f172a' }]}>
                   <Text style={{ fontWeight: 'bold' }}>{item.name}</Text>
                   {item.country ? ` (${item.country})` : ''}
                 </Text>
               </TouchableOpacity>
             ))}
-          </View>
+          </GlassView>
         )}
 
         {loading ? (
           <View style={styles.loaderContainer}>
-            <ActivityIndicator size="large" color="#0d6efd" />
-            <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Retrieving atmospheric time-series...</Text>
+            <ActivityIndicator size="large" color="#ffffff" />
+            <Text style={styles.loadingText}>Retrieving atmospheric time-series...</Text>
           </View>
         ) : (
           <Animated.View style={{ opacity: fadeAnim }}>
@@ -542,8 +574,14 @@ export default function App() {
 
         {/* Remodeled Navigation Menu */}
         <Modal visible={isMenuOpen} transparent animationType="fade" onRequestClose={() => setIsMenuOpen(false)}>
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
-            <View style={{ width: '100%', maxWidth: 380, backgroundColor: theme.cardBg, borderRadius: 20, padding: 22 }}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+            <GlassView
+              variant="elevated"
+              isDarkMode={isDarkMode}
+              borderRadius={26}
+              intensity={50}
+              style={{ width: '100%', maxWidth: 390, padding: 22 }}
+            >
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
                 <Text style={{ fontSize: 20, fontWeight: '800', color: theme.textPrimary }}>☁️ Meteo Navigation</Text>
                 <TouchableOpacity onPress={() => setIsMenuOpen(false)}>
@@ -553,7 +591,17 @@ export default function App() {
 
               <View style={{ gap: 12, marginBottom: 10 }}>
                 <TouchableOpacity
-                  style={{ backgroundColor: '#198754', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+                  style={{
+                    backgroundColor: '#1e8e3e',
+                    paddingVertical: 14,
+                    paddingHorizontal: 16,
+                    borderRadius: 16,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255, 255, 255, 0.25)',
+                  }}
                   onPress={() => {
                     setIsMenuOpen(false);
                     setIsArchiveOpen(true);
@@ -564,7 +612,17 @@ export default function App() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={{ backgroundColor: '#0d6efd', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+                  style={{
+                    backgroundColor: '#1a73e8',
+                    paddingVertical: 14,
+                    paddingHorizontal: 16,
+                    borderRadius: 16,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255, 255, 255, 0.25)',
+                  }}
                   onPress={() => {
                     setIsMenuOpen(false);
                     setIsSettingsOpen(true);
@@ -575,7 +633,17 @@ export default function App() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={{ backgroundColor: notifyBadgeColor, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+                  style={{
+                    backgroundColor: notifyBadgeColor,
+                    paddingVertical: 14,
+                    paddingHorizontal: 16,
+                    borderRadius: 16,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255, 255, 255, 0.25)',
+                  }}
                   onPress={() => {
                     setIsMenuOpen(false);
                     setIsNotificationOpen(true);
@@ -587,12 +655,18 @@ export default function App() {
               </View>
 
               <TouchableOpacity
-                style={{ backgroundColor: theme.borderColor, paddingVertical: 12, borderRadius: 12, alignItems: 'center', marginTop: 8 }}
+                style={{
+                  backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.06)',
+                  paddingVertical: 12,
+                  borderRadius: 14,
+                  alignItems: 'center',
+                  marginTop: 8,
+                }}
                 onPress={() => setIsMenuOpen(false)}
               >
                 <Text style={{ color: theme.textPrimary, fontWeight: 'bold' }}>Close Menu</Text>
               </TouchableOpacity>
-            </View>
+            </GlassView>
           </View>
         </Modal>
 
@@ -643,6 +717,7 @@ export default function App() {
 
         <Footer theme={theme} />
       </ScrollView>
-    </View>
-  );
-              }
+    </WeatherGradientBackground>
+  </View>
+);
+}
