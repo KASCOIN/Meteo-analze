@@ -598,79 +598,85 @@ export default function App() {
               isDarkMode={isDarkMode}
               borderRadius={26}
               intensity={50}
-              style={{ width: '100%', maxWidth: 390, padding: 22 }}
+              style={{ width: '100%', maxWidth: 390, maxHeight: '82%', padding: 22 }}
             >
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-                <Text style={{ fontSize: 20, fontWeight: '800', color: theme.textPrimary }}>☁️ Meteo Navigation</Text>
-                <TouchableOpacity onPress={() => setIsMenuOpen(false)}>
-                  <Text style={{ fontSize: 22, color: theme.textSecondary, fontWeight: 'bold' }}>✕</Text>
-                </TouchableOpacity>
-              </View>
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 6 }}
+                keyboardShouldPersistTaps="handled"
+              >
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+                  <Text style={{ fontSize: 20, fontWeight: '800', color: theme.textPrimary }}>☁️ Meteo Navigation</Text>
+                  <TouchableOpacity onPress={() => setIsMenuOpen(false)}>
+                    <Text style={{ fontSize: 22, color: theme.textSecondary, fontWeight: 'bold' }}>✕</Text>
+                  </TouchableOpacity>
+                </View>
 
-              <View style={{ gap: 12, marginBottom: 10 }}>
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: '#1e8e3e',
-                    paddingVertical: 14,
-                    paddingHorizontal: 16,
-                    borderRadius: 16,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    borderWidth: 1,
-                    borderColor: 'rgba(255, 255, 255, 0.25)',
-                  }}
-                  onPress={() => {
-                    setIsMenuOpen(false);
-                    setIsArchiveOpen(true);
-                  }}
-                >
-                  <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 15 }}>📊 Climate Data Archive</Text>
-                  <Text style={{ color: '#ffffff', fontWeight: 'bold' }}>→</Text>
-                </TouchableOpacity>
+                <View style={{ gap: 12, marginBottom: 10 }}>
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: '#1e8e3e',
+                      paddingVertical: 14,
+                      paddingHorizontal: 16,
+                      borderRadius: 16,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      borderWidth: 1,
+                      borderColor: 'rgba(255, 255, 255, 0.25)',
+                    }}
+                    onPress={() => {
+                      setIsMenuOpen(false);
+                      setIsArchiveOpen(true);
+                    }}
+                  >
+                    <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 15 }}>📊 Climate Data Archive</Text>
+                    <Text style={{ color: '#ffffff', fontWeight: 'bold' }}>→</Text>
+                  </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: '#1a73e8',
-                    paddingVertical: 14,
-                    paddingHorizontal: 16,
-                    borderRadius: 16,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    borderWidth: 1,
-                    borderColor: 'rgba(255, 255, 255, 0.25)',
-                  }}
-                  onPress={() => {
-                    setIsMenuOpen(false);
-                    setIsSettingsOpen(true);
-                  }}
-                >
-                  <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 15 }}>⚙️ System Preferences</Text>
-                  <Text style={{ color: '#ffffff', fontWeight: 'bold' }}>→</Text>
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: '#1a73e8',
+                      paddingVertical: 14,
+                      paddingHorizontal: 16,
+                      borderRadius: 16,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      borderWidth: 1,
+                      borderColor: 'rgba(255, 255, 255, 0.25)',
+                    }}
+                    onPress={() => {
+                      setIsMenuOpen(false);
+                      setIsSettingsOpen(true);
+                    }}
+                  >
+                    <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 15 }}>⚙️ System Preferences</Text>
+                    <Text style={{ color: '#ffffff', fontWeight: 'bold' }}>→</Text>
+                  </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: notifyBadgeColor,
-                    paddingVertical: 14,
-                    paddingHorizontal: 16,
-                    borderRadius: 16,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    borderWidth: 1,
-                    borderColor: 'rgba(255, 255, 255, 0.25)',
-                  }}
-                  onPress={() => {
-                    setIsMenuOpen(false);
-                    setIsNotificationOpen(true);
-                  }}
-                >
-                  <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 15 }}>🔔 6 AM Briefs & Alerts</Text>
-                  <Text style={{ color: '#ffffff', fontWeight: 'bold' }}>→</Text>
-                </TouchableOpacity>
-              </View>
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: notifyBadgeColor,
+                      paddingVertical: 14,
+                      paddingHorizontal: 16,
+                      borderRadius: 16,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      borderWidth: 1,
+                      borderColor: 'rgba(255, 255, 255, 0.25)',
+                    }}
+                    onPress={() => {
+                      setIsMenuOpen(false);
+                      setIsNotificationOpen(true);
+                    }}
+                  >
+                    <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 15 }}>🔔 6 AM Briefs & Alerts</Text>
+                    <Text style={{ color: '#ffffff', fontWeight: 'bold' }}>→</Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
 
               <TouchableOpacity
                 style={{
