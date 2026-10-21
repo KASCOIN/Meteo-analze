@@ -23,6 +23,7 @@ import * as BackgroundFetch from 'expo-background-fetch';
 
 import { getTheme } from './src/constants/theme';
 import { styles } from './src/styles/globalStyles';
+import { getDeviceProfile, getResponsiveScale } from './src/styles/responsive';
 import { convertTemp } from './src/utils/unitConverters';
 import { getWMOWeather } from './src/utils/weatherHelpers';
 import { searchLocations } from './src/services/geocodingEngine';
@@ -97,8 +98,10 @@ if (Platform.OS !== 'web') {
 }
 
 export default function App() {
-  const { width: windowWidth } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [currentTime, setCurrentTime] = useState(new Date());
+  const deviceProfile = getDeviceProfile(windowWidth, windowHeight);
+  const responsiveScale = getResponsiveScale(windowWidth);
   const touchStartY = useRef(0);
 
   const [selectedLocation, setSelectedLocation] = useState({
@@ -598,7 +601,12 @@ export default function App() {
               isDarkMode={isDarkMode}
               borderRadius={26}
               intensity={50}
-              style={{ width: '100%', maxWidth: 390, maxHeight: '82%', padding: 22 }}
+              style={{
+                width: '100%',
+                maxWidth: deviceProfile === 'tablet' || deviceProfile === 'largeTablet' ? 480 : 390,
+                maxHeight: '82%',
+                padding: windowWidth < 360 ? 16 : 22,
+              }}
             >
               <ScrollView
                 showsVerticalScrollIndicator={false}

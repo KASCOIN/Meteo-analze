@@ -1,8 +1,13 @@
 import React from 'react';
-import { Modal, View, Text, TouchableOpacity, ScrollView, Linking, Platform } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, ScrollView, Linking, Platform, useWindowDimensions } from 'react-native';
+import { getDeviceProfile, getResponsiveScale } from '../styles/responsive';
 
 export const AboutModal = ({ isOpen, onClose, theme }) => {
   if (!isOpen) return null;
+
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const deviceProfile = getDeviceProfile(windowWidth, windowHeight);
+  const responsiveScale = getResponsiveScale(windowWidth);
 
   // =========================================================================
   // REPLACE THESE PLACEHOLDER LINKS WITH YOUR ACTUAL URLS BEFORE COMMIT:
@@ -31,7 +36,14 @@ export const AboutModal = ({ isOpen, onClose, theme }) => {
   return (
     <Modal visible={isOpen} transparent animationType="fade" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
-        <View style={{ width: '100%', maxWidth: 480, backgroundColor: theme.cardBg, borderRadius: 20, padding: 22, maxHeight: '85%' }}>
+        <View style={{
+          width: '100%',
+          maxWidth: deviceProfile === 'tablet' || deviceProfile === 'largeTablet' ? 560 : 480,
+          backgroundColor: theme.cardBg,
+          borderRadius: 20,
+          padding: windowWidth < 360 ? 16 : 22,
+          maxHeight: '85%',
+        }}>
           
           {/* Header */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -41,7 +53,7 @@ export const AboutModal = ({ isOpen, onClose, theme }) => {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={{ marginBottom: 16 }}>
+          <ScrollView style={{ marginBottom: 16 }} contentContainerStyle={{ paddingBottom: 8 }}>
             
             {/* Developer Contact Section */}
             <View style={{ marginBottom: 20 }}>

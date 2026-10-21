@@ -10,10 +10,12 @@ import {
   ActivityIndicator,
   StyleSheet,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import * as Location from 'expo-location';
 import { searchLocations } from '../services/geocodingEngine';
 import { GlassView } from './GlassView';
+import { getDeviceProfile, getResponsiveScale } from '../styles/responsive';
 
 export const NotificationModal = ({
   isOpen,
@@ -35,6 +37,10 @@ export const NotificationModal = ({
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
+
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const deviceProfile = getDeviceProfile(windowWidth, windowHeight);
+  const responsiveScale = getResponsiveScale(windowWidth);
 
   if (!isOpen) return null;
 
@@ -88,7 +94,14 @@ export const NotificationModal = ({
           isDarkMode={isDarkMode}
           borderRadius={26}
           intensity={50}
-          style={[modalStyles.card, { borderColor: theme.borderColor }]}
+          style={[
+            modalStyles.card,
+            {
+              borderColor: theme.borderColor,
+              maxWidth: deviceProfile === 'tablet' || deviceProfile === 'largeTablet' ? 540 : 460,
+              padding: windowWidth < 360 ? 16 : 20,
+            },
+          ]}
         >
           {/* Header */}
           <View style={modalStyles.headerRow}>
@@ -101,7 +114,7 @@ export const NotificationModal = ({
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={{ marginBottom: 12 }} keyboardShouldPersistTaps="handled">
+          <ScrollView style={{ marginBottom: 12 }} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 6 }}>
             {/* Enable Toggle */}
             <View style={[modalStyles.toggleRow, { borderBottomColor: theme.borderColor }]}>
               <Text style={{ fontSize: 15, fontWeight: '700', color: theme.textPrimary }}>Enable Daily & Live Weather Alerts</Text>

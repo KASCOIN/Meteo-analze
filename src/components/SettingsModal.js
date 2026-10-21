@@ -1,6 +1,7 @@
 import React from 'react';
-import { Modal, View, Text, TouchableOpacity, Switch, ScrollView, Linking, Platform } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, Switch, ScrollView, Linking, Platform, useWindowDimensions } from 'react-native';
 import { GlassView } from './GlassView';
+import { getDeviceProfile, getResponsiveScale } from '../styles/responsive';
 
 export const SettingsModal = ({
   isOpen,
@@ -17,6 +18,10 @@ export const SettingsModal = ({
   theme,
 }) => {
   if (!isOpen) return null;
+
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const deviceProfile = getDeviceProfile(windowWidth, windowHeight);
+  const responsiveScale = getResponsiveScale(windowWidth);
 
   const EMAIL_ADDRESS = 'nwosukasie@gmail.com';
   const GITHUB_URL = 'https://github.com/KASCOIN';
@@ -47,7 +52,12 @@ export const SettingsModal = ({
           isDarkMode={isDarkMode}
           borderRadius={26}
           intensity={50}
-          style={{ width: '100%', maxWidth: 450, padding: 22, maxHeight: '88%' }}
+          style={{
+            width: '100%',
+            maxWidth: deviceProfile === 'tablet' || deviceProfile === 'largeTablet' ? 540 : 450,
+            padding: windowWidth < 360 ? 16 : 22,
+            maxHeight: '88%',
+          }}
         >
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <Text style={{ fontSize: 21, fontWeight: '800', color: theme.textPrimary }}>⚙️ System Settings</Text>
@@ -56,7 +66,7 @@ export const SettingsModal = ({
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={{ marginBottom: 14 }}>
+          <ScrollView style={{ marginBottom: 14 }} contentContainerStyle={{ paddingBottom: 4 }}>
             {/* Theme Toggle */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.borderColor }}>
               <Text style={{ fontSize: 15, color: theme.textPrimary, fontWeight: '600' }}>Dark Theme Mode</Text>

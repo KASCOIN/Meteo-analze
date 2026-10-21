@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, Animated, StyleSheet, Platform } from 'react-native';
+import { View, Text, Animated, StyleSheet, Platform, Dimensions } from 'react-native';
 import { getWMOWeather } from '../utils/weatherHelpers';
 import { convertTemp, convertSpeed } from '../utils/unitConverters';
 import { GlassView } from './GlassView';
+import { getResponsiveScale, getDeviceProfile } from '../styles/responsive';
 
 export const WeatherHeroCard = ({
   location,
@@ -17,6 +18,10 @@ export const WeatherHeroCard = ({
   isDarkMode,
 }) => {
   if (!current) return null;
+
+  const screenWidth = Dimensions.get('window').width;
+  const deviceProfile = getDeviceProfile(screenWidth, Dimensions.get('window').height);
+  const responsiveScale = getResponsiveScale(screenWidth);
 
   const wmo = getWMOWeather(current.weatherCode);
   const fc3Wmo = forecast3Hr ? getWMOWeather(forecast3Hr.weatherCode) : null;
@@ -68,18 +73,22 @@ export const WeatherHeroCard = ({
       intensity={isDarkMode ? 45 : 60}
       variant="card"
       borderRadius={28}
-      style={styles.heroOuter}
+      style={[
+        styles.heroOuter,
+        deviceProfile === 'tablet' && styles.heroOuterTablet,
+        deviceProfile === 'largeTablet' && styles.heroOuterLargeTablet,
+      ]}
     >
       {/* 1. Location & Live Clock Header */}
       <View style={styles.topHeaderRow}>
         <View style={{ flex: 1, marginRight: 8 }}>
-          <Text style={[styles.locationTitle, { color: palette.title }]} numberOfLines={1}>
+          <Text style={[styles.locationTitle, { color: palette.title, fontSize: 22 * responsiveScale }]} numberOfLines={1}>
             📍 {location.name}{location.country ? `, ${location.country}` : ''}
           </Text>
-          <Text style={[styles.coordsText, { color: palette.coords }]}>
+          <Text style={[styles.coordsText, { color: palette.coords, fontSize: 11.5 * responsiveScale }]}>
             {location.latitude}°N, {location.longitude}°E
           </Text>
-          <Text style={[styles.liveClockText, { color: palette.clock }]}>
+          <Text style={[styles.liveClockText, { color: palette.clock, fontSize: 12.5 * responsiveScale }]}>
             {liveDate} | <Text style={[styles.clockTimeHighlight, { color: palette.clockHighlight }]}>{liveTime}</Text>
           </Text>
         </View>
@@ -94,28 +103,28 @@ export const WeatherHeroCard = ({
           ]}
         >
           <Animated.View style={[styles.liveDot, { transform: [{ scale: pulseAnim }] }]} />
-          <Text style={[styles.liveBadgeText, { color: palette.liveBadgeText }]}>LIVE</Text>
+          <Text style={[styles.liveBadgeText, { color: palette.liveBadgeText, fontSize: 10.5 * responsiveScale }]}>LIVE</Text>
         </View>
       </View>
 
       {/* 2. Main Temperature Banner */}
-      <View style={styles.mainMetricsRow}>
+      <View style={[styles.mainMetricsRow, deviceProfile === 'tablet' && styles.mainMetricsRowTablet]}>
         <View style={styles.tempLeftGroup}>
-          <Text style={styles.weatherIcon}>{wmo.icon}</Text>
+          <Text style={[styles.weatherIcon, { fontSize: 48 * responsiveScale }]}>{wmo.icon}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-            <Text style={[styles.tempValue, { color: palette.temp }]}>{convertTemp(current.temp, tempUnit)}</Text>
-            <Text style={[styles.tempUnitText, { color: palette.tempUnit }]}>°{tempUnit}</Text>
+            <Text style={[styles.tempValue, { color: palette.temp, fontSize: 48 * responsiveScale, lineHeight: (52 * responsiveScale) }]}>{convertTemp(current.temp, tempUnit)}</Text>
+            <Text style={[styles.tempUnitText, { color: palette.tempUnit, fontSize: 22 * responsiveScale }]} >°{tempUnit}</Text>
           </View>
         </View>
 
         <View style={styles.conditionRightGroup}>
-          <Text style={[styles.conditionTitle, { color: palette.condition }]} numberOfLines={1}>
+          <Text style={[styles.conditionTitle, { color: palette.condition, fontSize: 19 * responsiveScale }]} numberOfLines={1}>
             {wmo.desc}
           </Text>
-          <Text style={[styles.subMetric, { color: palette.subMetric }]}>
+          <Text style={[styles.subMetric, { color: palette.subMetric, fontSize: 12.5 * responsiveScale }]}>
             Feels like: {convertTemp(current.temp + 1.2, tempUnit)}°{tempUnit}
           </Text>
-          <Text style={[styles.subMetric, { color: palette.subMetric }]}>
+          <Text style={[styles.subMetric, { color: palette.subMetric, fontSize: 12.5 * responsiveScale }]}>
             Dew Point: {convertTemp(parseFloat(dewPoint), tempUnit)}°{tempUnit}
           </Text>
         </View>
@@ -130,9 +139,9 @@ export const WeatherHeroCard = ({
         style={[styles.aiPanel, { borderLeftColor: aiBadgeColor }]}
       >
         <View style={styles.aiHeaderRow}>
-          <Text style={[styles.aiTagText, { color: palette.aiTag }]}>✨ AI METEO ADVISORY & OUTFIT</Text>
+          <Text style={[styles.aiTagText, { color: palette.aiTag, fontSize: 11 * responsiveScale }]}>✨ AI METEO ADVISORY & OUTFIT</Text>
         </View>
-        <Text style={[styles.aiAdvisoryBody, { color: palette.aiBody }]}>{finalAiText}</Text>
+        <Text style={[styles.aiAdvisoryBody, { color: palette.aiBody, fontSize: 13.5 * responsiveScale }]}>{finalAiText}</Text>
       </GlassView>
 
       {/* 4. Telemetry Metrics Grid */}
@@ -144,10 +153,10 @@ export const WeatherHeroCard = ({
           intensity={25}
           style={styles.telemetryCard}
         >
-          <Text style={styles.telemetryIcon}>💧</Text>
-          <Text style={[styles.telemetryLabel, { color: palette.telemLabel }]}>HUMIDITY</Text>
-          <Text style={[styles.telemetryValue, { color: palette.telemValue }]}>{current.humidity}%</Text>
-          <Text style={[styles.telemetrySub, { color: current.humidity > 70 ? (isDarkMode ? '#38bdf8' : '#0284c7') : (isDarkMode ? '#81c995' : '#16a34a') }]}>
+          <Text style={[styles.telemetryIcon, { fontSize: 20 * responsiveScale }]}>💧</Text>
+          <Text style={[styles.telemetryLabel, { color: palette.telemLabel, fontSize: 10 * responsiveScale }]}>HUMIDITY</Text>
+          <Text style={[styles.telemetryValue, { color: palette.telemValue, fontSize: 14.5 * responsiveScale }]}>{current.humidity}%</Text>
+          <Text style={[styles.telemetrySub, { color: current.humidity > 70 ? (isDarkMode ? '#38bdf8' : '#0284c7') : (isDarkMode ? '#81c995' : '#16a34a'), fontSize: 10 * responsiveScale }]}>
             {current.humidity > 75 ? 'Humid' : current.humidity < 40 ? 'Dry' : 'Balanced'}
           </Text>
         </GlassView>
@@ -159,12 +168,12 @@ export const WeatherHeroCard = ({
           intensity={25}
           style={styles.telemetryCard}
         >
-          <Text style={styles.telemetryIcon}>💨</Text>
-          <Text style={[styles.telemetryLabel, { color: palette.telemLabel }]}>WIND SPEED</Text>
-          <Text style={[styles.telemetryValue, { color: palette.telemValue }]}>
+          <Text style={[styles.telemetryIcon, { fontSize: 20 * responsiveScale }]}>💨</Text>
+          <Text style={[styles.telemetryLabel, { color: palette.telemLabel, fontSize: 10 * responsiveScale }]}>WIND SPEED</Text>
+          <Text style={[styles.telemetryValue, { color: palette.telemValue, fontSize: 14.5 * responsiveScale }]}>
             {convertSpeed(current.windSpeed, speedUnit)} {speedUnit.toUpperCase()}
           </Text>
-          <Text style={[styles.telemetrySub, { color: palette.telemSub }]}>
+          <Text style={[styles.telemetrySub, { color: palette.telemSub, fontSize: 10 * responsiveScale }]}>
             Gusts: {convertSpeed(parseFloat(windGusts), speedUnit)}
           </Text>
         </GlassView>
@@ -176,10 +185,10 @@ export const WeatherHeroCard = ({
           intensity={25}
           style={styles.telemetryCard}
         >
-          <Text style={styles.telemetryIcon}>☀️</Text>
-          <Text style={[styles.telemetryLabel, { color: palette.telemLabel }]}>UV INDEX</Text>
-          <Text style={[styles.telemetryValue, { color: palette.telemValue }]}>{uvIndex} / 11</Text>
-          <Text style={[styles.telemetrySub, { color: uvIndex >= 6 ? (isDarkMode ? '#fdd663' : '#d97706') : (isDarkMode ? '#81c995' : '#16a34a') }]}>
+          <Text style={[styles.telemetryIcon, { fontSize: 20 * responsiveScale }]}>☀️</Text>
+          <Text style={[styles.telemetryLabel, { color: palette.telemLabel, fontSize: 10 * responsiveScale }]}>UV INDEX</Text>
+          <Text style={[styles.telemetryValue, { color: palette.telemValue, fontSize: 14.5 * responsiveScale }]}>{uvIndex} / 11</Text>
+          <Text style={[styles.telemetrySub, { color: uvIndex >= 6 ? (isDarkMode ? '#fdd663' : '#d97706') : (isDarkMode ? '#81c995' : '#16a34a'), fontSize: 10 * responsiveScale }]}>
             {uvIndex >= 6 ? 'Sunscreen' : 'Safe'}
           </Text>
         </GlassView>
@@ -191,10 +200,10 @@ export const WeatherHeroCard = ({
           intensity={25}
           style={styles.telemetryCard}
         >
-          <Text style={styles.telemetryIcon}>⏲️</Text>
-          <Text style={[styles.telemetryLabel, { color: palette.telemLabel }]}>PRESSURE</Text>
-          <Text style={[styles.telemetryValue, { color: palette.telemValue }]}>{pressure} hPa</Text>
-          <Text style={[styles.telemetrySub, { color: palette.telemSub }]}>
+          <Text style={[styles.telemetryIcon, { fontSize: 20 * responsiveScale }]}>⏲️</Text>
+          <Text style={[styles.telemetryLabel, { color: palette.telemLabel, fontSize: 10 * responsiveScale }]}>PRESSURE</Text>
+          <Text style={[styles.telemetryValue, { color: palette.telemValue, fontSize: 14.5 * responsiveScale }]}>{pressure} hPa</Text>
+          <Text style={[styles.telemetrySub, { color: palette.telemSub, fontSize: 10 * responsiveScale }]}>
             {pressure > 1013 ? 'High' : 'Normal'}
           </Text>
         </GlassView>
@@ -206,10 +215,10 @@ export const WeatherHeroCard = ({
           intensity={25}
           style={styles.telemetryCard}
         >
-          <Text style={styles.telemetryIcon}>☁️</Text>
-          <Text style={[styles.telemetryLabel, { color: palette.telemLabel }]}>CLOUD COVER</Text>
-          <Text style={[styles.telemetryValue, { color: palette.telemValue }]}>{cloudCover}%</Text>
-          <Text style={[styles.telemetrySub, { color: palette.telemSub }]}>
+          <Text style={[styles.telemetryIcon, { fontSize: 20 * responsiveScale }]}>☁️</Text>
+          <Text style={[styles.telemetryLabel, { color: palette.telemLabel, fontSize: 10 * responsiveScale }]}>CLOUD COVER</Text>
+          <Text style={[styles.telemetryValue, { color: palette.telemValue, fontSize: 14.5 * responsiveScale }]}>{cloudCover}%</Text>
+          <Text style={[styles.telemetrySub, { color: palette.telemSub, fontSize: 10 * responsiveScale }]}>
             {cloudCover > 60 ? 'Overcast' : cloudCover > 25 ? 'Partly' : 'Clear'}
           </Text>
         </GlassView>
@@ -221,10 +230,10 @@ export const WeatherHeroCard = ({
           intensity={25}
           style={styles.telemetryCard}
         >
-          <Text style={styles.telemetryIcon}>👁️</Text>
-          <Text style={[styles.telemetryLabel, { color: palette.telemLabel }]}>VISIBILITY</Text>
-          <Text style={[styles.telemetryValue, { color: palette.telemValue }]}>{visibility} km</Text>
-          <Text style={[styles.telemetrySub, { color: isDarkMode ? '#81c995' : '#16a34a' }]}>
+          <Text style={[styles.telemetryIcon, { fontSize: 20 * responsiveScale }]}>👁️</Text>
+          <Text style={[styles.telemetryLabel, { color: palette.telemLabel, fontSize: 10 * responsiveScale }]}>VISIBILITY</Text>
+          <Text style={[styles.telemetryValue, { color: palette.telemValue, fontSize: 14.5 * responsiveScale }]}>{visibility} km</Text>
+          <Text style={[styles.telemetrySub, { color: isDarkMode ? '#81c995' : '#16a34a', fontSize: 10 * responsiveScale }]}>
             {visibility >= 10 ? 'Clear' : 'Moderate'}
           </Text>
         </GlassView>
@@ -270,6 +279,16 @@ const styles = StyleSheet.create({
         elevation: 8,
       },
     }),
+  },
+  heroOuterTablet: {
+    padding: 28,
+    maxWidth: 980,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  heroOuterLargeTablet: {
+    padding: 32,
+    maxWidth: 1100,
   },
   topHeaderRow: {
     flexDirection: 'row',
@@ -322,6 +341,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     marginBottom: 12,
+  },
+  mainMetricsRowTablet: {
+    alignItems: 'flex-start',
+    gap: 16,
   },
   tempLeftGroup: {
     flexDirection: 'row',

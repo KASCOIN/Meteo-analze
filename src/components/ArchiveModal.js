@@ -10,10 +10,12 @@ import {
   ActivityIndicator,
   StyleSheet,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { searchLocations } from '../services/geocodingEngine';
 import { exportArchiveCSV } from '../services/csvExporter';
 import { GlassView } from './GlassView';
+import { getDeviceProfile, getResponsiveScale } from '../styles/responsive';
 
 export const ArchiveModal = ({ isOpen, onClose, defaultLocation, theme }) => {
   const [targetLocation, setTargetLocation] = useState(defaultLocation);
@@ -33,6 +35,10 @@ export const ArchiveModal = ({ isOpen, onClose, defaultLocation, theme }) => {
   });
 
   const [isExporting, setIsExporting] = useState(false);
+
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const deviceProfile = getDeviceProfile(windowWidth, windowHeight);
+  const responsiveScale = getResponsiveScale(windowWidth);
 
   if (!isOpen) return null;
 
@@ -76,7 +82,14 @@ export const ArchiveModal = ({ isOpen, onClose, defaultLocation, theme }) => {
           isDarkMode={isDarkMode}
           borderRadius={26}
           intensity={50}
-          style={[modalStyles.card, { borderColor: theme.borderColor }]}
+          style={[
+            modalStyles.card,
+            {
+              borderColor: theme.borderColor,
+              maxWidth: deviceProfile === 'tablet' || deviceProfile === 'largeTablet' ? 560 : 480,
+              padding: windowWidth < 360 ? 16 : 20,
+            },
+          ]}
         >
           
           {/* Header */}
@@ -90,7 +103,7 @@ export const ArchiveModal = ({ isOpen, onClose, defaultLocation, theme }) => {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={{ marginBottom: 12 }} keyboardShouldPersistTaps="handled">
+          <ScrollView style={{ marginBottom: 12 }} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 6 }}>
             
             {/* 1. Target Location */}
             <Text style={[modalStyles.sectionTitle, { color: theme.textPrimary }]}>1. Target Location</Text>
