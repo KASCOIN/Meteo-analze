@@ -66,7 +66,13 @@ export const SettingsModal = ({
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={{ marginBottom: 14 }} contentContainerStyle={{ paddingBottom: 4 }}>
+          <ScrollView
+            style={{ marginBottom: 14 }}
+            contentContainerStyle={{ paddingBottom: 4 }}
+            nestedScrollEnabled={Platform.OS === 'android'}
+            bounces={false}
+            showsVerticalScrollIndicator={false}
+          >
             {/* Theme Toggle */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.borderColor }}>
               <Text style={{ fontSize: 15, color: theme.textPrimary, fontWeight: '600' }}>Dark Theme Mode</Text>

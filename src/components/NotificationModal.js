@@ -114,7 +114,14 @@ export const NotificationModal = ({
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={{ marginBottom: 12 }} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 6 }}>
+          <ScrollView
+            style={{ marginBottom: 12 }}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: 6 }}
+            nestedScrollEnabled={Platform.OS === 'android'}
+            bounces={false}
+            showsVerticalScrollIndicator={false}
+          >
             {/* Enable Toggle */}
             <View style={[modalStyles.toggleRow, { borderBottomColor: theme.borderColor }]}>
               <Text style={{ fontSize: 15, fontWeight: '700', color: theme.textPrimary }}>Enable Daily & Live Weather Alerts</Text>

@@ -103,7 +103,14 @@ export const ArchiveModal = ({ isOpen, onClose, defaultLocation, theme }) => {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={{ marginBottom: 12 }} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 6 }}>
+          <ScrollView
+            style={{ marginBottom: 12 }}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: 6 }}
+            nestedScrollEnabled={Platform.OS === 'android'}
+            bounces={false}
+            showsVerticalScrollIndicator={false}
+          >
             
             {/* 1. Target Location */}
             <Text style={[modalStyles.sectionTitle, { color: theme.textPrimary }]}>1. Target Location</Text>

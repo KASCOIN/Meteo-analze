@@ -53,7 +53,13 @@ export const AboutModal = ({ isOpen, onClose, theme }) => {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={{ marginBottom: 16 }} contentContainerStyle={{ paddingBottom: 8 }}>
+          <ScrollView
+            style={{ marginBottom: 16 }}
+            contentContainerStyle={{ paddingBottom: 8 }}
+            nestedScrollEnabled={Platform.OS === 'android'}
+            bounces={false}
+            showsVerticalScrollIndicator={false}
+          >
             
             {/* Developer Contact Section */}
             <View style={{ marginBottom: 20 }}>

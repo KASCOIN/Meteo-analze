@@ -26,7 +26,7 @@ import { styles } from './src/styles/globalStyles';
 import { getDeviceProfile, getResponsiveScale } from './src/styles/responsive';
 import { convertTemp } from './src/utils/unitConverters';
 import { getWMOWeather } from './src/utils/weatherHelpers';
-import { searchLocations } from './src/services/geocodingEngine';
+import { searchLocations, reverseGeocodeLocation } from './src/services/geocodingEngine';
 import { fetchAndProcessClimateData } from './src/services/weatherEngine';
 import { fetchKiloAiWeatherSummary } from './src/services/aiEngine';
 import { saveUserPreferences, getUserPreferences } from './src/utils/storage';
@@ -140,6 +140,20 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const anyModalOpen = isMenuOpen || isSettingsOpen || isArchiveOpen || isNotificationOpen;
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = anyModalOpen ? 'hidden' : '';
+      document.body.style.touchAction = anyModalOpen ? 'none' : '';
+    }
+    return () => {
+      if (typeof document !== 'undefined') {
+        document.body.style.overflow = '';
+        document.body.style.touchAction = '';
+      }
+    };
+  }, [anyModalOpen]);
 
   // Notifications
   const [isNotifyEnabled, setIsNotifyEnabled] = useState(false);
@@ -198,13 +212,25 @@ export default function App() {
         if (status === 'granted') {
           let pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
           const userGpsLoc = {
-            name: 'Present Location',
+            name: 'Current Location',
             country: 'GPS Position',
             latitude: pos.coords.latitude,
             longitude: pos.coords.longitude,
           };
-          setSelectedLocation(userGpsLoc);
-          setNotifyLocation(userGpsLoc);
+
+          const reverseLookup = await reverseGeocodeLocation({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          });
+
+          const resolvedLocation = {
+            ...userGpsLoc,
+            name: reverseLookup.name || userGpsLoc.name,
+            country: reverseLookup.country || userGpsLoc.country,
+          };
+
+          setSelectedLocation(resolvedLocation);
+          setNotifyLocation(resolvedLocation);
         }
       } catch (e) {
         // Fallback default coordinates
@@ -396,13 +422,25 @@ export default function App() {
 
       let pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       const myLoc = {
-        name: 'Present Location',
+        name: 'Current Location',
         country: 'GPS Position',
         latitude: pos.coords.latitude,
         longitude: pos.coords.longitude,
       };
-      setSelectedLocation(myLoc);
-      setNotifyLocation(myLoc);
+
+      const reverseLookup = await reverseGeocodeLocation({
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+      });
+
+      const resolvedLocation = {
+        ...myLoc,
+        name: reverseLookup.name || myLoc.name,
+        country: reverseLookup.country || myLoc.country,
+      };
+
+      setSelectedLocation(resolvedLocation);
+      setNotifyLocation(resolvedLocation);
       showAlert('Location Updated', 'GPS position synchronized successfully!', 'success');
     } catch (err) {
       showAlert('Location Error', 'Could not access device GPS location.', 'error');
@@ -439,6 +477,8 @@ export default function App() {
               paddingTop: Platform.OS === 'web' ? 8 : (StatusBar.currentHeight || 20),
             },
           ]}
+          scrollEnabled={!anyModalOpen}
+          nestedScrollEnabled={Platform.OS === 'android'}
           keyboardShouldPersistTaps="handled"
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleManualRefresh} tintColor="#ffffff" colors={['#1a73e8']} />
@@ -612,6 +652,8 @@ export default function App() {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 6 }}
                 keyboardShouldPersistTaps="handled"
+                nestedScrollEnabled={Platform.OS === 'android'}
+                bounces={false}
               >
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
                   <Text style={{ fontSize: 20, fontWeight: '800', color: theme.textPrimary }}>☁️ Meteo Navigation</Text>
