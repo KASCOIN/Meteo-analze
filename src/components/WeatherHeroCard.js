@@ -80,15 +80,23 @@ export const WeatherHeroCard = ({
       ]}
     >
       {/* 1. Location & Live Clock Header */}
-      <View style={styles.topHeaderRow}>
-        <View style={{ flex: 1, marginRight: 8 }}>
-          <Text style={[styles.locationTitle, { color: palette.title, fontSize: 22 * responsiveScale }]} numberOfLines={1}>
+      <View style={[styles.topHeaderRow, screenWidth < 390 && styles.topHeaderRowCompact]}>
+        <View style={{ flex: 1, marginRight: 8, minWidth: 0 }}>
+          <Text
+            style={[
+              styles.locationTitle,
+              { color: palette.title, fontSize: 22 * responsiveScale },
+              screenWidth < 390 && styles.locationTitleCompact,
+            ]}
+            numberOfLines={2}
+            adjustsFontSizeToFit={false}
+          >
             📍 {location.name}{location.country ? `, ${location.country}` : ''}
           </Text>
-          <Text style={[styles.coordsText, { color: palette.coords, fontSize: 11.5 * responsiveScale }]}>
+          <Text style={[styles.coordsText, { color: palette.coords, fontSize: 11.5 * responsiveScale }, screenWidth < 390 && styles.coordsTextCompact]}>
             {location.latitude}°N, {location.longitude}°E
           </Text>
-          <Text style={[styles.liveClockText, { color: palette.clock, fontSize: 12.5 * responsiveScale }]}>
+          <Text style={[styles.liveClockText, { color: palette.clock, fontSize: 12.5 * responsiveScale }, screenWidth < 390 && styles.liveClockTextCompact]}>
             {liveDate} | <Text style={[styles.clockTimeHighlight, { color: palette.clockHighlight }]}>{liveTime}</Text>
           </Text>
         </View>
@@ -296,21 +304,37 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 12,
   },
+  topHeaderRowCompact: {
+    alignItems: 'center',
+  },
   locationTitle: {
     fontSize: 22,
     fontWeight: '800',
     letterSpacing: 0.2,
+    flexShrink: 1,
+  },
+  locationTitleCompact: {
+    lineHeight: 26,
+    maxWidth: '100%',
   },
   coordsText: {
     fontSize: 11.5,
     marginTop: 2,
     fontWeight: '600',
     letterSpacing: 0.3,
+    flexShrink: 1,
+  },
+  coordsTextCompact: {
+    maxWidth: '100%',
   },
   liveClockText: {
     fontSize: 12.5,
     marginTop: 4,
     fontWeight: '600',
+    flexShrink: 1,
+  },
+  liveClockTextCompact: {
+    maxWidth: '100%',
   },
   clockTimeHighlight: {
     fontWeight: '800',

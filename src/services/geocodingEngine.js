@@ -23,21 +23,31 @@ export const reverseGeocodeLocation = async ({ latitude, longitude }) => {
   }
 
   try {
-    const url = `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${latitude}&longitude=${longitude}&language=en&format=json`;
-    const response = await fetch(url);
-    const data = await response.json();
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=jsonv2&addressdetails=1&zoom=18`;
+    const response = await fetch(url, {
+      headers: {
+        'Accept-Language': 'en',
+        'User-Agent': 'MeteoAnalaze/1.0',
+      },
+    });
 
-    const result = data?.results?.[0];
-    if (!result) {
-      return {
-        name: 'Current Location',
-        country: '',
-        formatted: 'Current Location',
-      };
+    if (!response.ok) {
+      throw new Error(`Reverse geocode failed with status ${response.status}`);
     }
 
-    const city = result.name || result.locality || result.admin1 || 'Current Location';
-    const country = result.country || result.admin1 || '';
+    const data = await response.json();
+    const address = data?.address || {};
+
+    const city =
+      address.city ||
+      address.town ||
+      address.village ||
+      address.suburb ||
+      address.municipality ||
+      address.county ||
+      'Current Location';
+
+    const country = address.country || '';
     const formatted = [city, country].filter(Boolean).join(', ');
 
     return {
