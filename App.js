@@ -646,11 +646,13 @@ export default function App() {
                 maxWidth: deviceProfile === 'tablet' || deviceProfile === 'largeTablet' ? 480 : 390,
                 maxHeight: '82%',
                 padding: windowWidth < 360 ? 16 : 22,
+                minHeight: 0,
               }}
             >
               <ScrollView
+                style={{ flexGrow: 1, minHeight: 0, maxHeight: '100%' }}
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 6 }}
+                contentContainerStyle={{ paddingBottom: 6, flexGrow: 1 }}
                 keyboardShouldPersistTaps="handled"
                 nestedScrollEnabled={Platform.OS === 'android'}
                 bounces={false}

@@ -57,6 +57,7 @@ export const SettingsModal = ({
             maxWidth: deviceProfile === 'tablet' || deviceProfile === 'largeTablet' ? 540 : 450,
             padding: windowWidth < 360 ? 16 : 22,
             maxHeight: '88%',
+            minHeight: 0,
           }}
         >
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -67,8 +68,8 @@ export const SettingsModal = ({
           </View>
 
           <ScrollView
-            style={{ marginBottom: 14 }}
-            contentContainerStyle={{ paddingBottom: 4 }}
+            style={{ marginBottom: 14, flexGrow: 1, minHeight: 0, maxHeight: '100%' }}
+            contentContainerStyle={{ paddingBottom: 4, flexGrow: 1 }}
             nestedScrollEnabled={Platform.OS === 'android'}
             bounces={false}
             showsVerticalScrollIndicator={false}

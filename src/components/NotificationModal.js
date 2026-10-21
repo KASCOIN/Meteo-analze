@@ -100,6 +100,7 @@ export const NotificationModal = ({
               borderColor: theme.borderColor,
               maxWidth: deviceProfile === 'tablet' || deviceProfile === 'largeTablet' ? 540 : 460,
               padding: windowWidth < 360 ? 16 : 20,
+              minHeight: 0,
             },
           ]}
         >
@@ -115,9 +116,9 @@ export const NotificationModal = ({
           </View>
 
           <ScrollView
-            style={{ marginBottom: 12 }}
+            style={{ marginBottom: 12, flexGrow: 1, minHeight: 0, maxHeight: '100%' }}
             keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ paddingBottom: 6 }}
+            contentContainerStyle={{ paddingBottom: 6, flexGrow: 1 }}
             nestedScrollEnabled={Platform.OS === 'android'}
             bounces={false}
             showsVerticalScrollIndicator={false}

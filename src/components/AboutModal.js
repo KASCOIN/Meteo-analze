@@ -43,6 +43,7 @@ export const AboutModal = ({ isOpen, onClose, theme }) => {
           borderRadius: 20,
           padding: windowWidth < 360 ? 16 : 22,
           maxHeight: '85%',
+          minHeight: 0,
         }}>
           
           {/* Header */}
@@ -54,8 +55,8 @@ export const AboutModal = ({ isOpen, onClose, theme }) => {
           </View>
 
           <ScrollView
-            style={{ marginBottom: 16 }}
-            contentContainerStyle={{ paddingBottom: 8 }}
+            style={{ marginBottom: 16, flexGrow: 1, minHeight: 0, maxHeight: '100%' }}
+            contentContainerStyle={{ paddingBottom: 8, flexGrow: 1 }}
             nestedScrollEnabled={Platform.OS === 'android'}
             bounces={false}
             showsVerticalScrollIndicator={false}
