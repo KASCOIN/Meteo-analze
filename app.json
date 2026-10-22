@@ -27,7 +27,8 @@
           "color": "#0d6efd",
           "sounds": []
         }
-      ]
+      ],
+      "react-native-android-widget"
     ],
     "ios": {
       "supportsTablet": true,
