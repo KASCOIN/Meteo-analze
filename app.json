@@ -15,20 +15,30 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow Meteo Analaze to access your location for live weather updates and precise local alerts.",
-          "isAndroidBackgroundLocationEnabled": false,
-          "isAndroidForegroundServiceEnabled": false
+          "locationAlwaysAndWhenInUsePermission": "Allow Meteo Analaze to access your location for live weather updates and precise local alerts."
         }
       ],
       [
         "expo-notifications",
         {
           "icon": "./assets/icon.png",
-          "color": "#0d6efd",
-          "sounds": []
+          "color": "#0d6efd"
         }
       ],
-      "react-native-android-widget"
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "MeteoWidget",
+              "label": "Meteo Weather Brief",
+              "minWidth": "180dp",
+              "minHeight": "110dp",
+              "description": "Displays live temperature, weather status, and location on your home screen."
+            }
+          ]
+        }
+      ]
     ],
     "ios": {
       "supportsTablet": true,
@@ -53,17 +63,18 @@
       "favicon": "./assets/icon.png",
       "output": "single"
     },
+    "sdkVersion": "51.0.0",
     "extra": {
       "eas": {
-        "projectId": "ef914cb7-3434-4494-99cd-e2d4ee780624"
+        "projectId": "02dc6756-6a39-465e-84ae-54452b4a360e"
       }
     },
-    "owner": "mazi2s-team",
+    "owner": "mazi3",
     "runtimeVersion": {
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/ef914cb7-3434-4494-99cd-e2d4ee780624",
+      "url": "https://u.expo.dev/02dc6756-6a39-465e-84ae-54452b4a360e",
       "checkAutomatically": "ON_LOAD",
       "fallbackToCacheTimeout": 0
     }
