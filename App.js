@@ -20,6 +20,7 @@ import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
 import * as BackgroundFetch from 'expo-background-fetch';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { getTheme } from './src/constants/theme';
 import { styles } from './src/styles/globalStyles';
@@ -505,36 +506,37 @@ export default function App() {
   const containerMaxWidth = windowWidth > 1024 ? 900 : windowWidth > 768 ? 720 : '100%';
 
   return (
-    <View
-      style={{ flex: 1, backgroundColor: theme.bg, alignItems: 'center' }}
-      onTouchStart={handleTouchStartWeb}
-      onTouchMove={handleTouchMoveWeb}
-    >
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-
-      <WeatherGradientBackground
-        weatherCode={weatherPayload?.current?.weatherCode}
-        isDarkMode={isDarkMode}
-        style={{ flex: 1, width: '100%', alignItems: 'center' }}
+    <SafeAreaProvider>
+      <View
+        style={{ flex: 1, backgroundColor: theme.bg, alignItems: 'center' }}
+        onTouchStart={handleTouchStartWeb}
+        onTouchMove={handleTouchMoveWeb}
       >
-        <ScrollView
-          style={[
-            styles.container,
-            {
-              backgroundColor: 'transparent',
-              width: '100%',
-              maxWidth: containerMaxWidth,
-              paddingHorizontal: 12,
-              paddingTop: Platform.OS === 'web' ? 8 : (StatusBar.currentHeight || 20),
-            },
-          ]}
-          scrollEnabled={!anyModalOpen}
-          nestedScrollEnabled={Platform.OS === 'android'}
-          keyboardShouldPersistTaps="handled"
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleManualRefresh} tintColor="#ffffff" colors={['#1a73e8']} />
-          }
+        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+
+        <WeatherGradientBackground
+          weatherCode={weatherPayload?.current?.weatherCode}
+          isDarkMode={isDarkMode}
+          style={{ flex: 1, width: '100%', alignItems: 'center' }}
         >
+          <ScrollView
+            style={[
+              styles.container,
+              {
+                backgroundColor: 'transparent',
+                width: '100%',
+                maxWidth: containerMaxWidth,
+                paddingHorizontal: 12,
+                paddingTop: Platform.OS === 'web' ? 8 : (StatusBar.currentHeight || 20),
+              },
+            ]}
+            scrollEnabled={!anyModalOpen}
+            nestedScrollEnabled={Platform.OS === 'android'}
+            keyboardShouldPersistTaps="handled"
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={handleManualRefresh} tintColor="#ffffff" colors={['#1a73e8']} />
+            }
+          >
           {/* Header Section */}
           <View style={styles.headerRow}>
             <View style={{ flex: 1, marginRight: 8 }}>
@@ -842,9 +844,10 @@ export default function App() {
           theme={theme}
         />
 
-        <Footer theme={theme} />
-      </ScrollView>
-    </WeatherGradientBackground>
-  </View>
-);
+          <Footer theme={theme} />
+        </ScrollView>
+      </WeatherGradientBackground>
+    </View>
+    </SafeAreaProvider>
+  );
 }
