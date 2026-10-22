@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import * as IntentLauncher from 'expo-intent-launcher';
-import { Alert, Platform } from 'react-native';
+import * as Application from 'expo-application';
+import { Alert, Platform, Linking } from 'react-native';
 
 export const WEATHER_ALERT_ACTIONS = [
   { identifier: 'VIEW_RADAR', buttonTitle: 'View Radar', options: { isDestructive: false, isAuthenticationRequired: false } },
@@ -103,6 +104,44 @@ export const requestExactAlarmPermissionsAsync = async () => {
   return { status: 'granted' };
 };
 
+export const triggerInstantTestNotification = async () => {
+  if (Platform.OS === 'web') {
+    return null;
+  }
+
+  try {
+    const permission = await requestNotificationPermissions();
+    if (permission?.status !== 'granted' && permission?.granted !== true) {
+      return null;
+    }
+
+    const immediate = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '⚡ Meteo Live Alert Test',
+        body: 'Notification pipeline is fully operational! Weather telemetry updates are active.',
+        sound: 'default',
+        priority: Notifications.AndroidNotificationPriority.MAX,
+      },
+      trigger: null,
+    });
+
+    const delayed = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '⚡ Meteo Live Alert Test',
+        body: 'Heads-up banner is visible now. Weather telemetry updates are active.',
+        sound: 'default',
+        priority: Notifications.AndroidNotificationPriority.MAX,
+      },
+      trigger: { seconds: 3 },
+    });
+
+    return { immediate, delayed };
+  } catch (error) {
+    console.warn('Instant test notification failed:', error);
+    return null;
+  }
+};
+
 export const scheduleDailyMorningBriefing = async (briefingText = 'Good morning — here is your weather briefing.') => {
   if (Platform.OS === 'web') return null;
 
@@ -158,15 +197,25 @@ export const openBatteryOptimizationSettings = async () => {
       'Battery Optimization',
       'Please set Meteo Analaze to Unrestricted battery usage so you do not miss severe weather alerts or your daily morning briefing.',
       [
-        { text: 'Open Settings', onPress: async () => {
-          try {
-            await IntentLauncher.startActivityAsync(
-              IntentLauncher.ActivityAction.REQUEST_IGNORE_BATTERY_OPTIMIZATION_SETTINGS
-            );
-          } catch (error) {
-            console.warn('Battery optimization settings could not be opened:', error);
-          }
-        } },
+        {
+          text: 'Open Settings',
+          onPress: async () => {
+            try {
+              await IntentLauncher.startActivityAsync(
+                'android.settings.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS',
+                { data: `package:${Application.applicationId}` }
+              );
+            } catch (e1) {
+              try {
+                await IntentLauncher.startActivityAsync(
+                  IntentLauncher.ActivityAction.IGNORE_BATTERY_OPTIMIZATION_SETTINGS
+                );
+              } catch (e2) {
+                Linking.openSettings();
+              }
+            }
+          },
+        },
         { text: 'Later', style: 'cancel' },
       ]
     );
@@ -197,6 +246,7 @@ export default {
   getExactAlarmPermissionsAsync,
   requestExactAlarmPermissionsAsync,
   scheduleDailyMorningBriefing,
+  triggerInstantTestNotification,
   getExpoPushToken,
   openBatteryOptimizationSettings,
   initializeNotificationSystem,

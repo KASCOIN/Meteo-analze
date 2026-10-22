@@ -93,6 +93,8 @@ export const ArchiveModal = ({ isOpen, onClose, defaultLocation, theme }) => {
                 maxWidth: deviceProfile === 'tablet' || deviceProfile === 'largeTablet' ? 560 : 480,
                 padding: windowWidth < 360 ? 16 : 20,
                 minHeight: 0,
+                maxHeight: '85%',
+                height: '85%',
                 flex: 1,
               },
             ]}
@@ -111,7 +113,7 @@ export const ArchiveModal = ({ isOpen, onClose, defaultLocation, theme }) => {
             <ScrollView
               style={{ marginBottom: 12, flexGrow: 1, minHeight: 0, maxHeight: '100%' }}
               keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ paddingBottom: Math.max(insets.bottom + 24, 32), flexGrow: 1 }}
+              contentContainerStyle={{ paddingBottom: Math.max(insets.bottom + 16, 24), flexGrow: 1 }}
               nestedScrollEnabled={Platform.OS === 'android'}
               bounces={false}
               showsVerticalScrollIndicator={false}
@@ -261,7 +263,7 @@ const modalStyles = StyleSheet.create({
     maxWidth: 480,
     borderRadius: 20,
     padding: 20,
-    maxHeight: '88%',
+    maxHeight: '85%',
     borderWidth: 1,
     ...Platform.select({
       web: {

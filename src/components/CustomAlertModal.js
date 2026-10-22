@@ -10,13 +10,13 @@ export const CustomAlertModal = ({ visible, title, message, type = 'info', onClo
   const getTypeStyle = () => {
     switch (type) {
       case 'success':
-        return { icon: '✅', accent: '#1e8e3e', badgeBg: 'rgba(30, 142, 62, 0.2)' };
+        return { icon: '✓', accent: '#22c55e', badgeBg: 'rgba(34, 197, 94, 0.15)', cardBg: '#1e293b' };
       case 'warning':
-        return { icon: '⚠️', accent: '#f9ab00', badgeBg: 'rgba(249, 171, 0, 0.2)' };
+        return { icon: '⚠', accent: '#f59e0b', badgeBg: 'rgba(245, 158, 11, 0.15)', cardBg: '#1e293b' };
       case 'error':
-        return { icon: '❌', accent: '#d93025', badgeBg: 'rgba(217, 48, 37, 0.2)' };
+        return { icon: '✕', accent: '#ef4444', badgeBg: 'rgba(239, 68, 68, 0.15)', cardBg: '#1e293b' };
       default:
-        return { icon: '🔔', accent: '#1a73e8', badgeBg: 'rgba(26, 115, 232, 0.2)' };
+        return { icon: '•', accent: '#3b82f6', badgeBg: 'rgba(59, 130, 246, 0.15)', cardBg: '#1e293b' };
     }
   };
 
@@ -33,27 +33,28 @@ export const CustomAlertModal = ({ visible, title, message, type = 'info', onClo
           style={[
             alertStyles.card,
             {
-              borderColor: styleConfig.accent,
+              backgroundColor: styleConfig.cardBg,
+              borderColor: '#334155',
             },
           ]}
         >
-          <View style={[alertStyles.iconBadge, { backgroundColor: styleConfig.badgeBg }]}>
-            <Text style={{ fontSize: 28 }}>{styleConfig.icon}</Text>
+          <View style={[alertStyles.iconBadge, { backgroundColor: styleConfig.badgeBg, borderColor: '#334155' }]}> 
+            <Text style={{ fontSize: 28, color: styleConfig.accent, fontWeight: '800' }}>{styleConfig.icon}</Text>
           </View>
 
-          <Text style={[alertStyles.title, { color: theme?.textPrimary || '#ffffff' }]}>
-            {title}
+          <Text style={[alertStyles.title, { color: '#ffffff' }]}>
+            {title || 'Settings Saved'}
           </Text>
 
-          <Text style={[alertStyles.message, { color: theme?.textSecondary || '#cbd5e1' }]}>
-            {message}
+          <Text style={[alertStyles.message, { color: '#94a3b8' }]}>
+            {message || 'Your weather alert preferences and telemetry locations have been updated successfully.'}
           </Text>
 
           <TouchableOpacity
-            style={[alertStyles.confirmButton, { backgroundColor: styleConfig.accent }]}
+            style={[alertStyles.confirmButton, { backgroundColor: '#22c55e' }]}
             onPress={onClose}
           >
-            <Text style={alertStyles.confirmButtonText}>OK, Got it</Text>
+            <Text style={alertStyles.confirmButtonText}>OK, Got It</Text>
           </TouchableOpacity>
         </GlassView>
       </View>
@@ -74,41 +75,46 @@ const alertStyles = StyleSheet.create({
     maxWidth: 380,
     padding: 24,
     alignItems: 'center',
-    borderWidth: 1.5,
+    borderWidth: 1,
+    borderRadius: 20,
     ...Platform.select({
       web: { boxShadow: '0 16px 40px rgba(0,0,0,0.4)' },
-      default: { elevation: 12 },
+      default: { elevation: 10 },
     }),
   },
   iconBadge: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 14,
+    borderWidth: 1,
   },
   title: {
-    fontSize: 19,
+    fontSize: 20,
     fontWeight: '800',
     textAlign: 'center',
-    marginBottom: 8,
+    color: '#ffffff',
+    marginTop: 12,
   },
   message: {
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,
-    marginBottom: 20,
+    color: '#94a3b8',
+    marginTop: 8,
+    marginBottom: 18,
   },
   confirmButton: {
     width: '100%',
-    paddingVertical: 13,
-    borderRadius: 16,
+    height: 48,
+    borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   confirmButtonText: {
     color: '#ffffff',
     fontWeight: '800',
-    fontSize: 14.5,
+    fontSize: 15,
   },
 });

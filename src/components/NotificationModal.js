@@ -16,6 +16,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { searchLocations } from '../services/geocodingEngine';
+import { triggerInstantTestNotification } from '../services/notificationService';
 import { GlassView } from './GlassView';
 import { getDeviceProfile, getResponsiveScale } from '../styles/responsive';
 
@@ -105,6 +106,8 @@ export const NotificationModal = ({
                 maxWidth: deviceProfile === 'tablet' || deviceProfile === 'largeTablet' ? 540 : 460,
                 padding: windowWidth < 360 ? 16 : 20,
                 minHeight: 0,
+                maxHeight: '85%',
+                height: '85%',
                 flex: 1,
               },
             ]}
@@ -123,7 +126,7 @@ export const NotificationModal = ({
             <ScrollView
               style={{ marginBottom: 12, flexGrow: 1, minHeight: 0, maxHeight: '100%' }}
               keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ paddingBottom: Math.max(insets.bottom + 24, 32), flexGrow: 1 }}
+              contentContainerStyle={{ paddingBottom: Math.max(insets.bottom + 16, 24), flexGrow: 1 }}
               nestedScrollEnabled={Platform.OS === 'android'}
               bounces={false}
               showsVerticalScrollIndicator={false}
@@ -201,11 +204,10 @@ export const NotificationModal = ({
               </Text>
             </View>
 
-            {/* 2. Interval Selection (Includes 5m Test Option) */}
+            {/* 2. Notification Schedule */}
             <Text style={[modalStyles.sectionTitle, { color: theme.textPrimary, marginTop: 12 }]}>2. Notification Schedule</Text>
             <View style={modalStyles.pillGroup}>
               {[
-                { label: '⚡ 5m (Test)', val: 5 },
                 { label: '30m', val: 30 },
                 { label: '1 Hr', val: 60 },
                 { label: '3 Hrs', val: 180 },
@@ -221,6 +223,15 @@ export const NotificationModal = ({
                 </TouchableOpacity>
               ))}
             </View>
+
+            <TouchableOpacity
+              style={modalStyles.instantTestButton}
+              onPress={async () => {
+                await triggerInstantTestNotification();
+              }}
+            >
+              <Text style={modalStyles.instantTestButtonText}>Send Test Notification Now ⚡</Text>
+            </TouchableOpacity>
 
             {/* 3. Variables Selection */}
             <Text style={[modalStyles.sectionTitle, { color: theme.textPrimary, marginTop: 12 }]}>3. Variables to Notify</Text>
@@ -306,7 +317,7 @@ const modalStyles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: 'row',
-    justify: 'space-between',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
   },
@@ -389,7 +400,7 @@ const modalStyles = StyleSheet.create({
   },
   toggleRow: {
     flexDirection: 'row',
-    justify: 'space-between',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: 1,
@@ -402,6 +413,19 @@ const modalStyles = StyleSheet.create({
   colorActive: {
     borderWidth: 3,
     borderColor: '#ffffff',
+  },
+  instantTestButton: {
+    backgroundColor: '#f59e0b',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  instantTestButtonText: {
+    color: '#ffffff',
+    fontWeight: '800',
+    fontSize: 14,
   },
   testButton: {
     backgroundColor: '#0d6efd',

@@ -34,6 +34,8 @@
               "label": "Meteo Weather Brief",
               "minWidth": "180dp",
               "minHeight": "110dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 2,
               "description": "Displays live temperature, weather status, and location on your home screen."
             }
           ]
