@@ -10,8 +10,10 @@ import {
   ActivityIndicator,
   StyleSheet,
   Platform,
+  KeyboardAvoidingView,
   useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { searchLocations } from '../services/geocodingEngine';
 import { GlassView } from './GlassView';
@@ -39,6 +41,7 @@ export const NotificationModal = ({
   const [isLocating, setIsLocating] = useState(false);
 
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const deviceProfile = getDeviceProfile(windowWidth, windowHeight);
   const responsiveScale = getResponsiveScale(windowWidth);
 
@@ -88,41 +91,43 @@ export const NotificationModal = ({
 
   return (
     <Modal visible={isOpen} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={modalStyles.backdrop}>
-        <GlassView
-          variant="elevated"
-          isDarkMode={isDarkMode}
-          borderRadius={26}
-          intensity={50}
-          style={[
-            modalStyles.card,
-            {
-              borderColor: theme.borderColor,
-              maxWidth: deviceProfile === 'tablet' || deviceProfile === 'largeTablet' ? 540 : 460,
-              padding: windowWidth < 360 ? 16 : 20,
-              minHeight: 0,
-            },
-          ]}
-        >
-          {/* Header */}
-          <View style={modalStyles.headerRow}>
-            <View>
-              <Text style={[modalStyles.title, { color: theme.textPrimary }]}>🔔 Weather Alert Notifications</Text>
-              <Text style={[modalStyles.subtitle, { color: theme.textSecondary }]}>6 AM Briefings & Telemetry Alerts</Text>
-            </View>
-            <TouchableOpacity onPress={onClose} style={modalStyles.closeButton}>
-              <Text style={{ fontSize: 22, color: theme.textSecondary, fontWeight: 'bold' }}>✕</Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            style={{ marginBottom: 12, flexGrow: 1, minHeight: 0, maxHeight: '100%' }}
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ paddingBottom: 6, flexGrow: 1 }}
-            nestedScrollEnabled={Platform.OS === 'android'}
-            bounces={false}
-            showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <View style={modalStyles.backdrop}>
+          <GlassView
+            variant="elevated"
+            isDarkMode={isDarkMode}
+            borderRadius={26}
+            intensity={50}
+            style={[
+              modalStyles.card,
+              {
+                borderColor: theme.borderColor,
+                maxWidth: deviceProfile === 'tablet' || deviceProfile === 'largeTablet' ? 540 : 460,
+                padding: windowWidth < 360 ? 16 : 20,
+                minHeight: 0,
+                flex: 1,
+              },
+            ]}
           >
+            {/* Header */}
+            <View style={modalStyles.headerRow}>
+              <View>
+                <Text style={[modalStyles.title, { color: theme.textPrimary }]}>🔔 Weather Alert Notifications</Text>
+                <Text style={[modalStyles.subtitle, { color: theme.textSecondary }]}>6 AM Briefings & Telemetry Alerts</Text>
+              </View>
+              <TouchableOpacity onPress={onClose} style={modalStyles.closeButton}>
+                <Text style={{ fontSize: 22, color: theme.textSecondary, fontWeight: 'bold' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              style={{ marginBottom: 12, flexGrow: 1, minHeight: 0, maxHeight: '100%' }}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingBottom: Math.max(insets.bottom + 24, 32), flexGrow: 1 }}
+              nestedScrollEnabled={Platform.OS === 'android'}
+              bounces={false}
+              showsVerticalScrollIndicator={false}
+            >
             {/* Enable Toggle */}
             <View style={[modalStyles.toggleRow, { borderBottomColor: theme.borderColor }]}>
               <Text style={{ fontSize: 15, fontWeight: '700', color: theme.textPrimary }}>Enable Daily & Live Weather Alerts</Text>
@@ -252,24 +257,25 @@ export const NotificationModal = ({
             </View>
           </ScrollView>
 
-          {/* Test & Close Buttons */}
-          <View style={{ gap: 8 }}>
-            <TouchableOpacity style={modalStyles.testButton} onPress={onTestTrigger}>
-              <Text style={modalStyles.testButtonText}>🔔 Dispatch Instant AI Alert</Text>
-            </TouchableOpacity>
+            {/* Test & Close Buttons */}
+            <View style={{ gap: 8 }}>
+              <TouchableOpacity style={modalStyles.testButton} onPress={onTestTrigger}>
+                <Text style={modalStyles.testButtonText}>🔔 Dispatch Instant AI Alert</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[
-                modalStyles.closeModalButton,
-                { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.06)' },
-              ]}
-              onPress={onClose}
-            >
-              <Text style={{ color: theme.textPrimary, fontWeight: 'bold' }}>Save & Close Settings</Text>
-            </TouchableOpacity>
-          </View>
-        </GlassView>
-      </View>
+              <TouchableOpacity
+                style={[
+                  modalStyles.closeModalButton,
+                  { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.06)' },
+                ]}
+                onPress={onClose}
+              >
+                <Text style={{ color: theme.textPrimary, fontWeight: 'bold' }}>Save & Close Settings</Text>
+              </TouchableOpacity>
+            </View>
+          </GlassView>
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };

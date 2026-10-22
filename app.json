@@ -15,14 +15,31 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow Meteo Analaze to access your location for live weather updates."
+          "locationAlwaysAndWhenInUsePermission": "Allow Meteo Analaze to access your location for live weather updates and precise local alerts.",
+          "isAndroidBackgroundLocationEnabled": false,
+          "isAndroidForegroundServiceEnabled": false
         }
       ],
       [
         "expo-notifications",
         {
           "icon": "./assets/icon.png",
-          "color": "#0d6efd"
+          "color": "#0d6efd",
+          "sounds": []
+        }
+      ],
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "MeteoWidget",
+              "label": "Meteo Weather Brief",
+              "minWidth": "180dp",
+              "minHeight": "110dp",
+              "description": "Displays live temperature, weather status, and location on your home screen."
+            }
+          ]
         }
       ]
     ],
@@ -42,15 +59,7 @@
         "POST_NOTIFICATIONS",
         "RECEIVE_BOOT_COMPLETED",
         "WAKE_LOCK",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION",
-        "POST_NOTIFICATIONS",
-        "RECEIVE_BOOT_COMPLETED",
-        "WAKE_LOCK",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "SCHEDULE_EXACT_ALARM"
       ]
     },
     "web": {
@@ -67,7 +76,9 @@
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/ef914cb7-3434-4494-99cd-e2d4ee780624"
+      "url": "https://u.expo.dev/ef914cb7-3434-4494-99cd-e2d4ee780624",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
     }
   }
 }

@@ -26,6 +26,7 @@ import { styles } from './src/styles/globalStyles';
 import { getDeviceProfile, getResponsiveScale } from './src/styles/responsive';
 import { convertTemp } from './src/utils/unitConverters';
 import { getWMOWeather } from './src/utils/weatherHelpers';
+import { isApp } from './src/utils/platform';
 import { searchLocations, reverseGeocodeLocation } from './src/services/geocodingEngine';
 import { fetchAndProcessClimateData } from './src/services/weatherEngine';
 import { fetchKiloAiWeatherSummary } from './src/services/aiEngine';
@@ -35,6 +36,14 @@ import {
   getLatestCachedWeatherData,
   cleanExpiredCacheData,
 } from './src/utils/offlineStorage';
+import {
+  initializeNotificationSystem,
+  scheduleDailyMorningBriefing,
+  getExpoPushToken,
+  openBatteryOptimizationSettings,
+} from './src/services/notificationService';
+import { getCityFromCoordinates } from './src/services/locationService';
+import { updateHomeWidget, registerHomeWidgetTaskHandler } from './src/services/widgetService';
 
 import { WeatherHeroCard } from './src/components/WeatherHeroCard';
 import { ArchiveModal } from './src/components/ArchiveModal';
@@ -207,6 +216,22 @@ export default function App() {
       setSpeedUnit(savedSpeed);
       if (savedNotifyLoc) setNotifyLocation(savedNotifyLoc);
 
+      if (isApp) {
+        try {
+          await initializeNotificationSystem();
+          await scheduleDailyMorningBriefing('Good morning — here is your weather briefing.');
+          const pushToken = await getExpoPushToken();
+          if (pushToken) {
+            console.log('Expo push token:', pushToken);
+          }
+          if (Platform.OS === 'android') {
+            await openBatteryOptimizationSettings();
+          }
+        } catch (error) {
+          console.warn('Native app initialization failed:', error);
+        }
+      }
+
       try {
         let { status } = await Location.requestForegroundPermissionsAsync();
         if (status === 'granted') {
@@ -218,15 +243,11 @@ export default function App() {
             longitude: pos.coords.longitude,
           };
 
-          const reverseLookup = await reverseGeocodeLocation({
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-          });
-
+          const locationName = await getCityFromCoordinates(pos.coords.latitude, pos.coords.longitude);
           const resolvedLocation = {
             ...userGpsLoc,
-            name: reverseLookup.name || userGpsLoc.name,
-            country: reverseLookup.country || userGpsLoc.country,
+            name: locationName || userGpsLoc.name,
+            country: userGpsLoc.country,
           };
 
           setSelectedLocation(resolvedLocation);
@@ -271,6 +292,15 @@ export default function App() {
             isForNotification: false,
           });
           if (aiText) setAiSummary(aiText);
+
+          if (isApp) {
+            await updateHomeWidget({
+              location: selectedLocation,
+              current: data.current,
+              wmoDesc: wmo.desc,
+              locationName: selectedLocation.name,
+            });
+          }
         } else {
           throw new Error('API unreachable');
         }
@@ -448,6 +478,27 @@ export default function App() {
       setIsLocating(false);
     }
   };
+
+  useEffect(() => {
+    if (isApp) {
+      registerHomeWidgetTaskHandler();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isApp && Notifications.addNotificationResponseReceivedListener) {
+      const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+        const actionId = response.actionIdentifier;
+        if (actionId === 'VIEW_RADAR') {
+          console.log('View radar action pressed');
+        } else if (actionId === 'SNOOZE_1H') {
+          console.log('Snooze action pressed');
+        }
+      });
+
+      return () => subscription.remove();
+    }
+  }, []);
 
   const formattedLiveTime = currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   const formattedLiveDate = currentTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });

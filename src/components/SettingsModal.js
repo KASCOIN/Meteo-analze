@@ -1,5 +1,6 @@
 import React from 'react';
-import { Modal, View, Text, TouchableOpacity, Switch, ScrollView, Linking, Platform, useWindowDimensions } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, Switch, ScrollView, Linking, Platform, KeyboardAvoidingView, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GlassView } from './GlassView';
 import { getDeviceProfile, getResponsiveScale } from '../styles/responsive';
 
@@ -20,6 +21,7 @@ export const SettingsModal = ({
   if (!isOpen) return null;
 
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const deviceProfile = getDeviceProfile(windowWidth, windowHeight);
   const responsiveScale = getResponsiveScale(windowWidth);
 
@@ -46,34 +48,39 @@ export const SettingsModal = ({
 
   return (
     <Modal visible={isOpen} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
-        <GlassView
-          variant="elevated"
-          isDarkMode={isDarkMode}
-          borderRadius={26}
-          intensity={50}
-          style={{
-            width: '100%',
-            maxWidth: deviceProfile === 'tablet' || deviceProfile === 'largeTablet' ? 540 : 450,
-            padding: windowWidth < 360 ? 16 : 22,
-            maxHeight: '88%',
-            minHeight: 0,
-          }}
-        >
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <Text style={{ fontSize: 21, fontWeight: '800', color: theme.textPrimary }}>⚙️ System Settings</Text>
-            <TouchableOpacity onPress={onClose} style={{ padding: 4 }}>
-              <Text style={{ fontSize: 22, color: theme.textSecondary, fontWeight: 'bold' }}>✕</Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            style={{ marginBottom: 14, flexGrow: 1, minHeight: 0, maxHeight: '100%' }}
-            contentContainerStyle={{ paddingBottom: 4, flexGrow: 1 }}
-            nestedScrollEnabled={Platform.OS === 'android'}
-            bounces={false}
-            showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+          <GlassView
+            variant="elevated"
+            isDarkMode={isDarkMode}
+            borderRadius={26}
+            intensity={50}
+            style={{
+              width: '100%',
+              maxWidth: deviceProfile === 'tablet' || deviceProfile === 'largeTablet' ? 540 : 450,
+              padding: windowWidth < 360 ? 16 : 22,
+              maxHeight: '88%',
+              minHeight: 0,
+              flex: 1,
+            }}
           >
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ fontSize: 21, fontWeight: '800', color: theme.textPrimary }}>⚙️ System Settings</Text>
+              <TouchableOpacity onPress={onClose} style={{ padding: 4 }}>
+                <Text style={{ fontSize: 22, color: theme.textSecondary, fontWeight: 'bold' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              style={{ marginBottom: 14, flexGrow: 1, minHeight: 0, maxHeight: '100%' }}
+              contentContainerStyle={{ paddingBottom: Math.max(insets.bottom + 24, 32), flexGrow: 1 }}
+              nestedScrollEnabled={Platform.OS === 'android'}
+              bounces={false}
+              showsVerticalScrollIndicator={false}
+            >
             {/* Theme Toggle */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.borderColor }}>
               <Text style={{ fontSize: 15, color: theme.textPrimary, fontWeight: '600' }}>Dark Theme Mode</Text>
@@ -176,21 +183,22 @@ export const SettingsModal = ({
                 </Text>
               </View>
             </View>
-          </ScrollView>
+            </ScrollView>
 
-          <TouchableOpacity
-            style={{
-              backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.06)',
-              paddingVertical: 12,
-              borderRadius: 14,
-              alignItems: 'center',
-            }}
-            onPress={onClose}
-          >
-            <Text style={{ color: theme.textPrimary, fontWeight: 'bold' }}>Close Settings</Text>
-          </TouchableOpacity>
-        </GlassView>
-      </View>
+            <TouchableOpacity
+              style={{
+                backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.06)',
+                paddingVertical: 12,
+                borderRadius: 14,
+                alignItems: 'center',
+              }}
+              onPress={onClose}
+            >
+              <Text style={{ color: theme.textPrimary, fontWeight: 'bold' }}>Close Settings</Text>
+            </TouchableOpacity>
+          </GlassView>
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
