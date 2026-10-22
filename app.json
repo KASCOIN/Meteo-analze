@@ -27,20 +27,6 @@
           "color": "#0d6efd",
           "sounds": []
         }
-      ],
-      [
-        "react-native-android-widget",
-        {
-          "widgets": [
-            {
-              "name": "MeteoWidget",
-              "label": "Meteo Weather Brief",
-              "minWidth": "180dp",
-              "minHeight": "110dp",
-              "description": "Displays live temperature, weather status, and location on your home screen."
-            }
-          ]
-        }
       ]
     ],
     "ios": {

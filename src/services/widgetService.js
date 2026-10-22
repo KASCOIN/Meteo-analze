@@ -5,7 +5,8 @@ export const registerHomeWidgetTaskHandler = () => {
   if (Platform.OS !== 'android') return null;
 
   try {
-    const { registerWidgetTaskHandler } = require('react-native-android-widget');
+    const widgetModule = require('react-native-android-widget');
+    const registerWidgetTaskHandler = widgetModule?.registerWidgetTaskHandler;
     if (typeof registerWidgetTaskHandler === 'function') {
       return registerWidgetTaskHandler(async (args) => {
         return args;
@@ -22,9 +23,15 @@ export const updateHomeWidget = async (weatherData = {}) => {
   if (Platform.OS !== 'android') return null;
 
   try {
-    const { requestWidgetUpdate } = require('react-native-android-widget');
+    const widgetModule = require('react-native-android-widget');
+    const requestWidgetUpdate = widgetModule?.requestWidgetUpdate;
     const React = require('react');
-    const { FlexWidget, TextWidget } = require('react-native-android-widget');
+    const FlexWidget = widgetModule?.FlexWidget;
+    const TextWidget = widgetModule?.TextWidget;
+
+    if (!requestWidgetUpdate || !FlexWidget || !TextWidget) {
+      return null;
+    }
 
     const locationName = weatherData.location?.name || weatherData.locationName || 'My Location';
     const current = weatherData.current || {};

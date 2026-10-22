@@ -13,7 +13,13 @@ export const MeteoWidget = ({ locationName = 'My Location', temperature = '--', 
   }
 
   try {
-    const { FlexWidget, TextWidget } = require('react-native-android-widget');
+    const widgetModule = require('react-native-android-widget');
+    const FlexWidget = widgetModule?.FlexWidget;
+    const TextWidget = widgetModule?.TextWidget;
+
+    if (!FlexWidget || !TextWidget) {
+      throw new Error('Widget component unavailable');
+    }
 
     return (
       <FlexWidget
