@@ -40,6 +40,9 @@ export const updateHomeWidget = async (weatherData = {}) => {
     const windSpeed = Number.isFinite(current.windSpeed) ? current.windSpeed : '--';
     const wmoDesc = weatherData.wmoDesc || (current.weatherCode != null ? getWMOWeather(current.weatherCode)?.desc : 'Clear');
     const updatedAt = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const aiSummary = typeof weatherData.aiSummary === 'string' ? weatherData.aiSummary : '';
+    const finalAiText = aiSummary ? aiSummary.replace(/\s+/g, ' ').trim() : `${wmoDesc} with ${temp}°C and ${windSpeed} km/h winds`;
+    const widgetSummary = finalAiText.length > 72 ? `${finalAiText.slice(0, 69).trim()}...` : finalAiText;
 
     const WidgetLayout = () => (
       <FlexWidget
@@ -62,6 +65,8 @@ export const updateHomeWidget = async (weatherData = {}) => {
           <TextWidget text={`${temp}°C`} style={{ color: '#ffffff', fontSize: 30, fontWeight: 'bold' }} />
           <TextWidget text={wmoDesc} style={{ color: '#ffffff', fontSize: 11, opacity: 0.9, marginLeft: 6 }} />
         </FlexWidget>
+
+        <TextWidget text={widgetSummary} style={{ color: '#eaf6ff', fontSize: 9.5, opacity: 0.95, lineHeight: 12 }} />
 
         <FlexWidget style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <TextWidget text={`${humidity}% RH`} style={{ color: 'rgba(255,255,255,0.86)', fontSize: 10 }} />

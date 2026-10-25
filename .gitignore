@@ -3,3 +3,6 @@ node_modules/
 dist/
 web-build/
 *.log
+.env
+.env.*
+.expo-env.d.ts

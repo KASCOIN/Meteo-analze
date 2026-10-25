@@ -290,6 +290,7 @@ export default function App() {
             current: data.current,
             wmoDesc: wmo.desc,
             tempUnit,
+            weatherSnapshot: data,
             isForNotification: false,
           });
           if (aiText) setAiSummary(aiText);
@@ -300,6 +301,7 @@ export default function App() {
               current: data.current,
               wmoDesc: wmo.desc,
               locationName: selectedLocation.name,
+              aiSummary: aiText,
             });
           }
         } else {
@@ -381,6 +383,7 @@ export default function App() {
               current: curr,
               wmoDesc: currWmo.desc,
               tempUnit,
+              weatherSnapshot: data,
               isForNotification: true,
             });
 
@@ -410,6 +413,7 @@ export default function App() {
           current: curr,
           wmoDesc: currWmo.desc,
           tempUnit,
+          weatherSnapshot: data,
           isForNotification: true,
         });
 
