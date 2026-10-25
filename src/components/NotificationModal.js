@@ -16,7 +16,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { searchLocations } from '../services/geocodingEngine';
-import { triggerInstantTestNotification } from '../services/notificationService';
 import { GlassView } from './GlassView';
 import { getDeviceProfile, getResponsiveScale } from '../styles/responsive';
 
@@ -199,8 +198,12 @@ export const NotificationModal = ({
             )}
 
             <View style={modalStyles.targetBadge}>
-              <Text style={{ color: '#0d6efd', fontWeight: '700', fontSize: 12 }}>
-                Active Alert Target: 📍 {location.name} ({location.latitude}°N, {location.longitude}°E)
+              <Text style={{ color: '#0d6efd', fontWeight: '800', fontSize: 11, letterSpacing: 0.3 }}>ACTIVE ALERT TARGET</Text>
+              <Text style={{ color: '#0d6efd', fontWeight: '700', fontSize: 12, marginTop: 4 }}>
+                📍 {location.name}
+              </Text>
+              <Text style={{ color: '#0d6efd', fontWeight: '600', fontSize: 11, opacity: 0.9, marginTop: 2 }}>
+                {location.latitude}°N, {location.longitude}°E
               </Text>
             </View>
 
@@ -223,15 +226,6 @@ export const NotificationModal = ({
                 </TouchableOpacity>
               ))}
             </View>
-
-            <TouchableOpacity
-              style={modalStyles.instantTestButton}
-              onPress={async () => {
-                await triggerInstantTestNotification();
-              }}
-            >
-              <Text style={modalStyles.instantTestButtonText}>Send Test Notification Now ⚡</Text>
-            </TouchableOpacity>
 
             {/* 3. Variables Selection */}
             <Text style={[modalStyles.sectionTitle, { color: theme.textPrimary, marginTop: 12 }]}>3. Variables to Notify</Text>
@@ -268,8 +262,8 @@ export const NotificationModal = ({
             </View>
           </ScrollView>
 
-            {/* Test & Close Buttons */}
-            <View style={{ gap: 8 }}>
+            {/* Alert Action Bar */}
+            <View style={{ gap: 8, marginTop: 8 }}>
               <TouchableOpacity style={modalStyles.testButton} onPress={onTestTrigger}>
                 <Text style={modalStyles.testButtonText}>🔔 Dispatch Instant AI Alert</Text>
               </TouchableOpacity>
@@ -281,7 +275,7 @@ export const NotificationModal = ({
                 ]}
                 onPress={onClose}
               >
-                <Text style={{ color: theme.textPrimary, fontWeight: 'bold' }}>Save & Close Settings</Text>
+                <Text style={{ color: theme.textPrimary, fontWeight: 'bold' }}>Save & Confirm Settings 💾</Text>
               </TouchableOpacity>
             </View>
           </GlassView>

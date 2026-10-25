@@ -135,27 +135,6 @@ export const SettingsModal = ({
               </View>
             </View>
 
-            {/* Actions */}
-            <View style={{ paddingVertical: 14 }}>
-              <TouchableOpacity
-                style={{
-                  backgroundColor: '#1a73e8',
-                  paddingVertical: 12,
-                  borderRadius: 16,
-                  alignItems: 'center',
-                  marginBottom: 8,
-                  borderWidth: 1,
-                  borderColor: 'rgba(255, 255, 255, 0.25)',
-                }}
-                onPress={() => {
-                  onClose();
-                  if (onOpenAlerts) onOpenAlerts();
-                }}
-              >
-                <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 14 }}>🔔 Configure System Alerts</Text>
-              </TouchableOpacity>
-            </View>
-
             {/* In-App Data Credits & Developer Info */}
             <View style={{ borderTopWidth: 1, borderTopColor: theme.borderColor, paddingTop: 14 }}>
               <Text style={{ fontSize: 12.5, fontWeight: '800', color: '#34a853', letterSpacing: 0.5, marginBottom: 10 }}>
