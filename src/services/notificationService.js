@@ -58,6 +58,68 @@ export const ensureAndroidNotificationChannels = async () => {
   }
 };
 
+export const showInAppAlertFallback = (body, title = '⚡ Weather Alert') => {
+  try {
+    if (typeof Alert !== 'undefined' && typeof Alert.alert === 'function') {
+      Alert.alert(title, body);
+      return true;
+    }
+  } catch (error) {
+    console.warn('In-app notification fallback failed:', error);
+  }
+  return false;
+};
+
+export const sendWebOrNativeNotification = async ({ title, body, data = {} }) => {
+  const safeTitle = typeof title === 'string' && title.trim() ? title : 'Weather Alert';
+  const safeBody = typeof body === 'string' ? body : String(body ?? '');
+
+  if (Platform.OS === 'android' || Platform.OS === 'ios') {
+    try {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: safeTitle,
+          body: safeBody,
+          sound: true,
+          data,
+        },
+        trigger: null,
+      });
+      return { delivered: true, source: 'native' };
+    } catch (error) {
+      console.warn('Native notification dispatch failed:', error);
+      showInAppAlertFallback(safeBody, '⚡ Weather Alert');
+      return { delivered: false, source: 'native-fallback' };
+    }
+  }
+
+  if (Platform.OS === 'web') {
+    try {
+      if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+        if (navigator.serviceWorker.controller) {
+          const registration = await navigator.serviceWorker.ready;
+          await registration.showNotification(safeTitle, {
+            body: safeBody,
+            icon: '/favicon.png',
+            badge: '/favicon.png',
+            data,
+          });
+          return { delivered: true, source: 'service-worker' };
+        }
+      }
+
+      console.log('Web Notification:', safeTitle, safeBody);
+      return { delivered: false, source: 'web-console' };
+    } catch (error) {
+      console.warn('Web notification dispatch failed:', error);
+      showInAppAlertFallback(safeBody, '⚡ Weather Alert');
+      return { delivered: false, source: 'web-fallback' };
+    }
+  }
+
+  return { delivered: false, source: 'unsupported-platform' };
+};
+
 export const requestNotificationPermissions = async () => {
   if (Platform.OS === 'web') return { granted: false, status: 'unsupported' };
 
@@ -105,13 +167,19 @@ export const requestExactAlarmPermissionsAsync = async () => {
 };
 
 export const triggerInstantTestNotification = async () => {
-  if (Platform.OS === 'web') {
-    return null;
-  }
-
   try {
+    if (Platform.OS === 'web') {
+      await sendWebOrNativeNotification({
+        title: '⚡ Meteo Live Alert Test',
+        body: 'Notification pipeline is fully operational! Weather telemetry updates are active.',
+        data: { type: 'test_alert' },
+      });
+      return { delivered: true };
+    }
+
     const permission = await requestNotificationPermissions();
     if (permission?.status !== 'granted' && permission?.granted !== true) {
+      showInAppAlertFallback('Notifications are disabled right now. Please enable them in your device settings.', '⚡ Weather Alert');
       return null;
     }
 
@@ -138,6 +206,7 @@ export const triggerInstantTestNotification = async () => {
     return { immediate, delayed };
   } catch (error) {
     console.warn('Instant test notification failed:', error);
+    showInAppAlertFallback('Weather alert is active, but the browser blocked the push banner.', '⚡ Weather Alert');
     return null;
   }
 };

@@ -3,13 +3,25 @@
  * Primary path: Google Gemini with live weather-grounded prompts.
  * Fallback path: concise rule-based advice when the API is unavailable.
  */
-const getGeminiApiKey = () => {
-  if (typeof process !== 'undefined' && process?.env) {
-    return process.env.EXPO_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY || '';
-  }
+import Constants from 'expo-constants';
 
-  if (typeof globalThis !== 'undefined') {
-    return globalThis.EXPO_PUBLIC_GEMINI_API_KEY || globalThis.GEMINI_API_KEY || '';
+const getGeminiApiKey = () => {
+  const expoExtra = Constants?.expoConfig?.extra || Constants?.manifest?.extra || {};
+
+  const directValues = [
+    process?.env?.EXPO_PUBLIC_GEMINI_API_KEY,
+    process?.env?.GEMINI_API_KEY,
+    globalThis?.EXPO_PUBLIC_GEMINI_API_KEY,
+    globalThis?.GEMINI_API_KEY,
+    expoExtra?.EXPO_PUBLIC_GEMINI_API_KEY,
+    expoExtra?.GEMINI_API_KEY,
+    expoExtra?.geminiApiKey,
+  ];
+
+  for (const value of directValues) {
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
   }
 
   return '';

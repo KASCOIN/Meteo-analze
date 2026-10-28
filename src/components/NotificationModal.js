@@ -12,6 +12,7 @@ import {
   Platform,
   KeyboardAvoidingView,
   useWindowDimensions,
+  Alert,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -286,7 +287,16 @@ export const NotificationModal = ({
               </ScrollView>
 
               <View style={{ gap: 8, marginTop: 8 }}>
-                <TouchableOpacity style={modalStyles.testButton} onPress={onTestTrigger}>
+                <TouchableOpacity
+                  style={modalStyles.testButton}
+                  onPress={async () => {
+                    try {
+                      await onTestTrigger();
+                    } catch (error) {
+                      Alert.alert('⚡ Weather Alert', 'Weather alert is ready to send, but the browser blocked the banner.');
+                    }
+                  }}
+                >
                   <Text style={modalStyles.testButtonText}>🔔 Dispatch Instant AI Alert</Text>
                 </TouchableOpacity>
 

@@ -52,7 +52,6 @@ import { WeatherHeroCard } from './src/components/WeatherHeroCard';
 import { ArchiveModal } from './src/components/ArchiveModal';
 import { NotificationModal } from './src/components/NotificationModal';
 import { SettingsModal } from './src/components/SettingsModal';
-import { Footer } from './src/components/Footer';
 import { OfflineBanner } from './src/components/OfflineBanner';
 import { CustomAlertModal } from './src/components/CustomAlertModal';
 import { GlassView } from './src/components/GlassView';
@@ -372,73 +371,72 @@ export default function App() {
 
   const triggerNotificationCheck = async () => {
     try {
-      if (Platform.OS === 'web') {
-        if (!('Notification' in window)) {
-          showAlert('Unsupported Browser', 'Web push notifications are not supported on this browser.', 'error');
-          return;
-        }
-        let perm = Notification.permission;
-        if (perm !== 'granted') perm = await Notification.requestPermission();
-        if (perm === 'granted') {
-          let data = weatherPayload;
-          if (isOffline) {
-            data = await getLatestCachedWeatherData(notifyLocation.latitude, notifyLocation.longitude);
-          }
-          const curr = data?.current;
-          if (curr) {
-            const currWmo = getWMOWeather(curr.weatherCode);
-            const shortAiAdvisory = await fetchKiloAiWeatherSummary({
-              locationName: notifyLocation.name,
-              current: curr,
-              wmoDesc: currWmo.desc,
-              tempUnit,
-              weatherSnapshot: data,
-              isForNotification: true,
-            });
-
-            new Notification(`📍 ${notifyLocation.name} Live Brief`, {
-              body: `${currWmo.icon} ${currWmo.desc} | ${convertTemp(curr.temp, tempUnit)}°${tempUnit}. ${shortAiAdvisory}`,
-            });
-            showAlert('Notification Sent', 'Web push notification dispatched successfully!', 'success');
-          }
-        }
-      } else {
-        const { status } = await Notifications.requestPermissionsAsync();
-        if (status !== 'granted') {
-          showAlert('Permission Denied', 'Notification permissions are disabled in system settings.', 'error');
-          return;
-        }
-
-        let data = weatherPayload;
-        if (isOffline) {
-          data = await getLatestCachedWeatherData(notifyLocation.latitude, notifyLocation.longitude);
-        }
-        const curr = data?.current;
-        if (!curr) return;
-
-        const currWmo = getWMOWeather(curr.weatherCode);
-        const shortAiAdvisory = await fetchKiloAiWeatherSummary({
-          locationName: notifyLocation.name,
-          current: curr,
-          wmoDesc: currWmo.desc,
-          tempUnit,
-          weatherSnapshot: data,
-          isForNotification: true,
-        });
-
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: `📍 ${notifyLocation.name} Weather Brief`,
-            body: `${currWmo.icon} ${currWmo.desc} | ${convertTemp(curr.temp, tempUnit)}°${tempUnit}. ${shortAiAdvisory}`,
-            sound: true,
-          },
-          trigger: null,
-        });
-
-        showAlert('Notification Dispatched', 'Instant AI weather alert queued on your device!', 'success');
+      let data = weatherPayload;
+      if (isOffline) {
+        data = await getLatestCachedWeatherData(notifyLocation.latitude, notifyLocation.longitude);
       }
-    } catch (err) {
-      showAlert('Notification Error', err.message, 'error');
+
+      const curr = data?.current;
+      if (!curr) {
+        showAlert('⚡ Weather Alert', 'No live or cached weather data is available for this alert yet.', 'info');
+        return;
+      }
+
+      const currWmo = getWMOWeather(curr.weatherCode);
+      const shortAiAdvisory = await fetchKiloAiWeatherSummary({
+        locationName: notifyLocation.name,
+        current: curr,
+        wmoDesc: currWmo.desc,
+        tempUnit,
+        weatherSnapshot: data,
+        isForNotification: true,
+      });
+
+      const alertBody = `${currWmo.icon} ${currWmo.desc} | ${convertTemp(curr.temp, tempUnit)}°${tempUnit}. ${shortAiAdvisory}`;
+
+      if (Platform.OS === 'web') {
+        if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
+          const permission = await Notification.requestPermission();
+          if (permission !== 'granted') {
+            showAlert('⚡ Weather Alert', alertBody, 'info');
+            return;
+          }
+        }
+
+        const webResult = await sendWebOrNativeNotification({
+          title: `📍 ${notifyLocation.name} Live Brief`,
+          body: alertBody,
+          data: { type: 'weather_alert', location: notifyLocation.name },
+        });
+
+        if (webResult?.delivered) {
+          showAlert('Notification Sent', 'Web push notification dispatched successfully!', 'success');
+        } else {
+          showAlert('⚡ Weather Alert', alertBody, 'info');
+        }
+        return;
+      }
+
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== 'granted') {
+        showAlert('⚡ Weather Alert', alertBody, 'info');
+        return;
+      }
+
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: `📍 ${notifyLocation.name} Weather Brief`,
+          body: alertBody,
+          sound: true,
+        },
+        trigger: null,
+      });
+
+      showAlert('Notification Dispatched', 'Instant AI weather alert queued on your device!', 'success');
+    } catch (error) {
+      const fallbackBody = 'Weather alert is ready, but the browser blocked the notification banner.';
+      showAlert('⚡ Weather Alert', fallbackBody, 'info');
+      console.warn('Notification trigger failed:', error);
     }
   };
 
@@ -880,7 +878,6 @@ export default function App() {
           theme={theme}
         />
 
-          <Footer theme={theme} />
         </ScrollView>
       </WeatherGradientBackground>
     </View>

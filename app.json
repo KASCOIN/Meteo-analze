@@ -69,7 +69,9 @@
     "extra": {
       "eas": {
         "projectId": "02dc6756-6a39-465e-84ae-54452b4a360e"
-      }
+      },
+      "EXPO_PUBLIC_GEMINI_API_KEY": "",
+      "GEMINI_API_KEY": ""
     },
     "owner": "mazi3",
     "runtimeVersion": {
