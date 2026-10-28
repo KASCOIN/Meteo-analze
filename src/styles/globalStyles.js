@@ -200,4 +200,56 @@ export const styles = StyleSheet.create({
   sectionStack: {
     gap: 10,
   },
+  toast: {
+    position: 'absolute',
+    top: 24,
+    left: 16,
+    right: 16,
+    zIndex: 999,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 18px 40px rgba(0, 0, 0, 0.28)',
+      },
+      default: {
+        elevation: 8,
+      },
+    }),
+  },
+  toastIconBadge: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(234, 179, 8, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toastBody: {
+    flex: 1,
+    minWidth: 0,
+  },
+  toastTitle: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  toastMessage: {
+    color: '#e2e8f0',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  toastLink: {
+    marginTop: 6,
+    color: '#93c5fd',
+    fontSize: 12,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
+  },
 });

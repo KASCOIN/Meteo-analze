@@ -15,6 +15,7 @@ import {
   Platform,
   StyleSheet,
   useWindowDimensions,
+  Linking,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 
@@ -136,10 +137,30 @@ export default function App() {
     message: '',
     type: 'info',
   });
+  const [toastConfig, setToastConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info',
+  });
 
   const showAlert = (title, message, type = 'info') => {
     setAlertConfig({ visible: true, title, message, type });
   };
+
+  const showToast = (title, message, type = 'info') => {
+    setToastConfig({ visible: true, title, message, type });
+  };
+
+  useEffect(() => {
+    if (!toastConfig.visible) return undefined;
+
+    const timeout = setTimeout(() => {
+      setToastConfig((prev) => ({ ...prev, visible: false }));
+    }, 6000);
+
+    return () => clearTimeout(timeout);
+  }, [toastConfig.visible]);
 
   // Preferences
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -395,12 +416,22 @@ export default function App() {
       const alertBody = `${currWmo.icon} ${currWmo.desc} | ${convertTemp(curr.temp, tempUnit)}°${tempUnit}. ${shortAiAdvisory}`;
 
       if (Platform.OS === 'web') {
-        if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
-          const permission = await Notification.requestPermission();
-          if (permission !== 'granted') {
-            showAlert('⚡ Weather Alert', alertBody, 'info');
+        if (typeof Notification !== 'undefined') {
+          if (Notification.permission === 'default') {
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+              showToast('⚡ Live Weather Advisory', alertBody, 'warning');
+              return;
+            }
+          }
+
+          if (Notification.permission === 'denied') {
+            showToast('⚡ Live Weather Advisory', alertBody, 'warning');
             return;
           }
+        } else {
+          showToast('⚡ Live Weather Advisory', alertBody, 'warning');
+          return;
         }
 
         const webResult = await sendWebOrNativeNotification({
@@ -411,8 +442,10 @@ export default function App() {
 
         if (webResult?.delivered) {
           showAlert('Notification Sent', 'Web push notification dispatched successfully!', 'success');
+        } else if (webResult?.source === 'web-denied') {
+          showToast('⚡ Live Weather Advisory', alertBody, 'warning');
         } else {
-          showAlert('⚡ Weather Alert', alertBody, 'info');
+          showToast('⚡ Live Weather Advisory', alertBody, 'warning');
         }
         return;
       }
@@ -435,7 +468,7 @@ export default function App() {
       showAlert('Notification Dispatched', 'Instant AI weather alert queued on your device!', 'success');
     } catch (error) {
       const fallbackBody = 'Weather alert is ready, but the browser blocked the notification banner.';
-      showAlert('⚡ Weather Alert', fallbackBody, 'info');
+      showToast('⚡ Live Weather Advisory', fallbackBody, 'warning');
       console.warn('Notification trigger failed:', error);
     }
   };
@@ -867,6 +900,35 @@ export default function App() {
           }}
           theme={theme}
         />
+
+        {toastConfig.visible && (
+          <Animated.View
+            pointerEvents="box-none"
+            style={[
+              styles.toast,
+              {
+                backgroundColor: 'rgba(15, 23, 42, 0.88)',
+                borderColor: toastConfig.type === 'warning' ? 'rgba(234, 179, 8, 0.4)' : 'rgba(59, 130, 246, 0.35)',
+              },
+            ]}
+          >
+            <View style={[styles.toastIconBadge, { backgroundColor: 'rgba(234, 179, 8, 0.15)' }]}>
+              <Text style={{ fontSize: 20 }}>⚡</Text>
+            </View>
+            <View style={styles.toastBody}>
+              <Text style={styles.toastTitle}>{toastConfig.title}</Text>
+              <Text style={styles.toastMessage}>{toastConfig.message}</Text>
+              {Platform.OS === 'web' && (
+                <TouchableOpacity
+                  onPress={() => Linking.openURL('https://support.google.com/chrome/answer/3220216')}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.toastLink}>How to allow notifications in Chrome settings</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </Animated.View>
+        )}
 
         {/* Custom Styled System Alert Dialog */}
         <CustomAlertModal

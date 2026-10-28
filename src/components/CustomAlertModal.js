@@ -1,5 +1,6 @@
 import React from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { GlassView } from './GlassView';
 
 export const CustomAlertModal = ({ visible, title, message, type = 'info', onClose, theme }) => {
@@ -10,13 +11,13 @@ export const CustomAlertModal = ({ visible, title, message, type = 'info', onClo
   const getTypeStyle = () => {
     switch (type) {
       case 'success':
-        return { icon: '✓', accent: '#22c55e', badgeBg: 'rgba(34, 197, 94, 0.15)', cardBg: '#1e293b' };
+        return { iconName: 'checkmark-circle', accent: '#22c55e', badgeBg: 'rgba(34, 197, 94, 0.15)', cardBg: '#1e293b' };
       case 'warning':
-        return { icon: '⚠', accent: '#f59e0b', badgeBg: 'rgba(245, 158, 11, 0.15)', cardBg: '#1e293b' };
+        return { iconName: 'warning', accent: '#eab308', badgeBg: 'rgba(234, 179, 8, 0.15)', cardBg: '#1e293b' };
       case 'error':
-        return { icon: '✕', accent: '#ef4444', badgeBg: 'rgba(239, 68, 68, 0.15)', cardBg: '#1e293b' };
+        return { iconName: 'alert-circle', accent: '#ef4444', badgeBg: 'rgba(239, 68, 68, 0.15)', cardBg: '#1e293b' };
       default:
-        return { icon: '•', accent: '#3b82f6', badgeBg: 'rgba(59, 130, 246, 0.15)', cardBg: '#1e293b' };
+        return { iconName: 'warning', accent: '#eab308', badgeBg: 'rgba(234, 179, 8, 0.15)', cardBg: '#1e293b' };
     }
   };
 
@@ -38,8 +39,8 @@ export const CustomAlertModal = ({ visible, title, message, type = 'info', onClo
             },
           ]}
         >
-          <View style={[alertStyles.iconBadge, { backgroundColor: styleConfig.badgeBg, borderColor: '#334155' }]}> 
-            <Text style={{ fontSize: 28, color: styleConfig.accent, fontWeight: '800' }}>{styleConfig.icon}</Text>
+          <View style={[alertStyles.iconBadge, { backgroundColor: styleConfig.badgeBg, borderColor: '#334155' }]}>
+            <Ionicons name={styleConfig.iconName} size={28} color={styleConfig.accent} />
           </View>
 
           <Text style={[alertStyles.title, { color: '#ffffff' }]}>

@@ -70,6 +70,20 @@ export const showInAppAlertFallback = (body, title = '⚡ Weather Alert') => {
   return false;
 };
 
+export const requestWebNotificationPermission = async () => {
+  if (Platform.OS !== 'web') return 'unsupported';
+
+  if (typeof window === 'undefined' || typeof Notification === 'undefined') {
+    return 'unsupported';
+  }
+
+  if (Notification.permission === 'default') {
+    return Notification.requestPermission();
+  }
+
+  return Notification.permission;
+};
+
 export const sendWebOrNativeNotification = async ({ title, body, data = {} }) => {
   const safeTitle = typeof title === 'string' && title.trim() ? title : 'Weather Alert';
   const safeBody = typeof body === 'string' ? body : String(body ?? '');
@@ -95,9 +109,25 @@ export const sendWebOrNativeNotification = async ({ title, body, data = {} }) =>
 
   if (Platform.OS === 'web') {
     try {
-      if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
-        if (navigator.serviceWorker.controller) {
-          const registration = await navigator.serviceWorker.ready;
+      if (typeof window === 'undefined' || typeof Notification === 'undefined') {
+        return { delivered: false, source: 'web-unsupported' };
+      }
+
+      const permissionState = Notification.permission;
+      if (permissionState === 'default') {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+          return { delivered: false, source: 'web-denied', permission };
+        }
+      }
+
+      if (permissionState === 'denied') {
+        return { delivered: false, source: 'web-denied', permission: permissionState };
+      }
+
+      if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && navigator.serviceWorker?.ready) {
+        const registration = await navigator.serviceWorker.ready;
+        if (typeof registration?.showNotification === 'function') {
           await registration.showNotification(safeTitle, {
             body: safeBody,
             icon: '/favicon.png',
