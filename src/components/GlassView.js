@@ -111,6 +111,8 @@ export const GlassView = ({
   const dynamicBorder = getBorderColor();
   const dynamicWebShadow = getWebShadow();
 
+  const mergedContentStyle = [{ flex: 1 }, contentStyle];
+
   if (Platform.OS === 'web') {
     return (
       <View
@@ -123,6 +125,8 @@ export const GlassView = ({
             borderColor: dynamicBorder,
             borderWidth: 1,
             overflow,
+            display: 'flex',
+            flexDirection: 'column',
             backdropFilter: 'blur(24px) saturate(190%)',
             WebkitBackdropFilter: 'blur(24px) saturate(190%)',
             boxShadow: dynamicWebShadow,
@@ -130,7 +134,7 @@ export const GlassView = ({
           style,
         ]}
       >
-        <View style={contentStyle}>{children}</View>
+        <View style={mergedContentStyle}>{children}</View>
       </View>
     );
   }
@@ -148,6 +152,8 @@ export const GlassView = ({
           borderWidth: 1,
           overflow,
           backgroundColor: dynamicBg,
+          display: 'flex',
+          flexDirection: 'column',
         },
         style,
       ]}
@@ -159,7 +165,7 @@ export const GlassView = ({
           style={StyleSheet.absoluteFill}
         />
       ) : null}
-      <View style={contentStyle}>{children}</View>
+      <View style={mergedContentStyle}>{children}</View>
     </View>
   );
 };
@@ -167,6 +173,8 @@ export const GlassView = ({
 const styles = StyleSheet.create({
   base: {
     position: 'relative',
+    display: 'flex',
+    flexDirection: 'column',
   },
   nativeShadow: {
     shadowColor: '#0f172a',

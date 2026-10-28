@@ -13,6 +13,7 @@ import {
   KeyboardAvoidingView,
   useWindowDimensions,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { searchLocations } from '../services/geocodingEngine';
@@ -22,6 +23,8 @@ import { getDeviceProfile, getResponsiveScale } from '../styles/responsive';
 export const NotificationModal = ({
   isOpen,
   onClose,
+  onBack,
+  onSave,
   isEnabled,
   setIsEnabled,
   location,
@@ -89,194 +92,214 @@ export const NotificationModal = ({
 
   const isDarkMode = theme?.textPrimary !== '#0f172a';
 
+  const modalWidth = windowWidth < 360 ? windowWidth - 20 : windowWidth < 768 ? Math.min(windowWidth - 28, 460) : 460;
+  const modalHeight = Math.min(windowHeight * 0.8, windowWidth < 768 ? 560 : 700);
+
   return (
     <Modal visible={isOpen} transparent animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={modalStyles.backdrop}>
+          <BlurView intensity={isDarkMode ? 18 : 24} tint={isDarkMode ? 'dark' : 'light'} style={StyleSheet.absoluteFillObject} />
           <GlassView
             variant="elevated"
             isDarkMode={isDarkMode}
             borderRadius={26}
             intensity={50}
+            contentStyle={{ flex: 1, minHeight: 0 }}
             style={[
               modalStyles.card,
               {
                 borderColor: theme.borderColor,
-                maxWidth: deviceProfile === 'tablet' || deviceProfile === 'largeTablet' ? 540 : 460,
+                width: modalWidth,
+                maxWidth: modalWidth,
+                height: modalHeight,
+                maxHeight: modalHeight,
                 padding: windowWidth < 360 ? 16 : 20,
                 minHeight: 0,
-                maxHeight: '85%',
-                height: '85%',
-                flex: 1,
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
               },
             ]}
           >
-            {/* Header */}
-            <View style={modalStyles.headerRow}>
-              <View>
-                <Text style={[modalStyles.title, { color: theme.textPrimary }]}>🔔 Weather Alert Notifications</Text>
-                <Text style={[modalStyles.subtitle, { color: theme.textSecondary }]}>6 AM Briefings & Telemetry Alerts</Text>
-              </View>
-              <TouchableOpacity onPress={onClose} style={modalStyles.closeButton}>
-                <Text style={{ fontSize: 22, color: theme.textSecondary, fontWeight: 'bold' }}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView
-              style={{ marginBottom: 12, flexGrow: 1, minHeight: 0, maxHeight: '100%' }}
-              keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ paddingBottom: Math.max(insets.bottom + 16, 24), flexGrow: 1 }}
-              nestedScrollEnabled={Platform.OS === 'android'}
-              bounces={false}
-              showsVerticalScrollIndicator={false}
-            >
-            {/* Enable Toggle */}
-            <View style={[modalStyles.toggleRow, { borderBottomColor: theme.borderColor }]}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: theme.textPrimary }}>Enable Daily & Live Weather Alerts</Text>
-              <Switch
-                value={isEnabled}
-                onValueChange={setIsEnabled}
-                trackColor={{ false: '#767577', true: '#0d6efd' }}
-              />
-            </View>
-
-            {/* 1. Target Location Selection with GPS Button */}
-            <Text style={[modalStyles.sectionTitle, { color: theme.textPrimary, marginTop: 12 }]}>1. Target Alert Location</Text>
-            
-            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8, alignItems: 'center' }}>
-              <View style={{ flex: 1, position: 'relative' }}>
-                <TextInput
-                  style={[
-                    modalStyles.input,
-                    { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.borderColor },
-                  ]}
-                  placeholder="Search alert target city..."
-                  placeholderTextColor={theme.textSecondary}
-                  value={searchQuery}
-                  onChangeText={handleSearch}
-                />
-                {isSearching && <ActivityIndicator size="small" color="#0d6efd" style={modalStyles.searchLoader} />}
-              </View>
-
-              <TouchableOpacity
-                style={modalStyles.gpsIconButton}
-                onPress={handleSetGpsLocation}
-                disabled={isLocating}
-              >
-                {isLocating ? (
-                  <ActivityIndicator size="small" color="#ffffff" />
-                ) : (
-                  <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 13 }}>📍 Me</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-
-            {searchResults.length > 0 && (
-              <View style={[modalStyles.resultsContainer, { backgroundColor: theme.inputBg, borderColor: theme.borderColor }]}>
-                {searchResults.map((item) => (
-                  <TouchableOpacity
-                    key={`${item.id}-${item.latitude}`}
-                    style={[modalStyles.resultItem, { borderBottomColor: theme.borderColor }]}
-                    onPress={() => {
-                      setLocation({
-                        name: item.name,
-                        country: item.country || item.admin1 || '',
-                        latitude: item.latitude,
-                        longitude: item.longitude,
-                      });
-                      setSearchQuery('');
-                      setSearchResults([]);
-                    }}
-                  >
-                    <Text style={{ color: theme.textPrimary, fontSize: 13 }}>
-                      <Text style={{ fontWeight: 'bold' }}>{item.name}</Text>
-                      {item.country ? ` (${item.country})` : ''}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-
-            <View style={modalStyles.targetBadge}>
-              <Text style={{ color: '#0d6efd', fontWeight: '800', fontSize: 11, letterSpacing: 0.3 }}>ACTIVE ALERT TARGET</Text>
-              <Text style={{ color: '#0d6efd', fontWeight: '700', fontSize: 12, marginTop: 4 }}>
-                📍 {location.name}
-              </Text>
-              <Text style={{ color: '#0d6efd', fontWeight: '600', fontSize: 11, opacity: 0.9, marginTop: 2 }}>
-                {location.latitude}°N, {location.longitude}°E
-              </Text>
-            </View>
-
-            {/* 2. Notification Schedule */}
-            <Text style={[modalStyles.sectionTitle, { color: theme.textPrimary, marginTop: 12 }]}>2. Notification Schedule</Text>
-            <View style={modalStyles.pillGroup}>
-              {[
-                { label: '30m', val: 30 },
-                { label: '1 Hr', val: 60 },
-                { label: '3 Hrs', val: 180 },
-              ].map((item) => (
+            <View style={{ flex: 1, minHeight: 0 }}>
+              <View style={[modalStyles.headerRow, { gap: 10 }]}> 
                 <TouchableOpacity
-                  key={item.val}
-                  style={[modalStyles.pill, intervalMin === item.val && modalStyles.pillActive]}
-                  onPress={() => setIntervalMin(item.val)}
+                  onPress={onBack}
+                  style={{
+                    backgroundColor: '#1a73e8',
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    borderRadius: 10,
+                    minWidth: 72,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    shadowColor: '#1a73e8',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.18,
+                    shadowRadius: 6,
+                    elevation: 3,
+                  }}
                 >
-                  <Text style={[modalStyles.pillText, intervalMin === item.val && modalStyles.pillActiveText]}>
-                    {item.label}
-                  </Text>
+                  <Text style={{ fontSize: 12, color: '#fff', fontWeight: '800' }}>← Back</Text>
                 </TouchableOpacity>
-              ))}
-            </View>
 
-            {/* 3. Variables Selection */}
-            <Text style={[modalStyles.sectionTitle, { color: theme.textPrimary, marginTop: 12 }]}>3. Variables to Notify</Text>
-            {[
-              { key: 'temp', label: 'Temperature & Apparent Temp' },
-              { key: 'precip', label: 'Rainfall & Precip Probability' },
-              { key: 'wind', label: 'Wind Speed & Max Gusts' },
-              { key: 'uv', label: 'UV Radiation Index' },
-            ].map((v) => (
-              <View key={v.key} style={[modalStyles.toggleRow, { borderBottomColor: theme.borderColor }]}>
-                <Text style={{ fontSize: 13, color: theme.textPrimary, fontWeight: '500' }}>{v.label}</Text>
-                <Switch
-                  value={vars[v.key]}
-                  onValueChange={(val) => setVars((prev) => ({ ...prev, [v.key]: val }))}
-                  trackColor={{ false: '#767577', true: '#0d6efd' }}
-                />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={[modalStyles.title, { color: theme.textPrimary, fontSize: 18 }]} numberOfLines={2}>🔔 Notifications</Text>
+                  <Text style={[modalStyles.subtitle, { color: theme.textSecondary }]} numberOfLines={2}>6 AM briefings & telemetry alerts</Text>
+                </View>
               </View>
-            ))}
 
-            {/* 4. Badge Color Picker */}
-            <Text style={[modalStyles.sectionTitle, { color: theme.textPrimary, marginTop: 12 }]}>4. Alert Badge Color</Text>
-            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
-              {colors.map((c) => (
-                <TouchableOpacity
-                  key={c}
-                  style={[
-                    modalStyles.colorCircle,
-                    { backgroundColor: c },
-                    badgeColor === c && modalStyles.colorActive,
-                  ]}
-                  onPress={() => setBadgeColor(c)}
-                />
-              ))}
-            </View>
-          </ScrollView>
-
-            {/* Alert Action Bar */}
-            <View style={{ gap: 8, marginTop: 8 }}>
-              <TouchableOpacity style={modalStyles.testButton} onPress={onTestTrigger}>
-                <Text style={modalStyles.testButtonText}>🔔 Dispatch Instant AI Alert</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  modalStyles.closeModalButton,
-                  { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.06)' },
-                ]}
-                onPress={onClose}
+              <ScrollView
+                style={{ flex: 1, minHeight: 0, marginBottom: 12 }}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ paddingBottom: Math.max(insets.bottom + 28, 28), paddingHorizontal: 2 }}
+                nestedScrollEnabled={Platform.OS === 'android'}
+                bounces={false}
+                showsVerticalScrollIndicator={false}
               >
-                <Text style={{ color: theme.textPrimary, fontWeight: 'bold' }}>Save & Confirm Settings 💾</Text>
-              </TouchableOpacity>
+                <View style={[modalStyles.toggleRow, { borderBottomColor: theme.borderColor }]}>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: theme.textPrimary }}>Enable Daily & Live Weather Alerts</Text>
+                  <Switch
+                    value={isEnabled}
+                    onValueChange={setIsEnabled}
+                    trackColor={{ false: '#767577', true: '#0d6efd' }}
+                  />
+                </View>
+
+                <Text style={[modalStyles.sectionTitle, { color: theme.textPrimary, marginTop: 12 }]}>1. Target Alert Location</Text>
+
+                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                  <View style={{ flex: 1, position: 'relative' }}>
+                    <TextInput
+                      style={[
+                        modalStyles.input,
+                        { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.borderColor },
+                      ]}
+                      placeholder="Search alert target city..."
+                      placeholderTextColor={theme.textSecondary}
+                      value={searchQuery}
+                      onChangeText={handleSearch}
+                    />
+                    {isSearching && <ActivityIndicator size="small" color="#0d6efd" style={modalStyles.searchLoader} />}
+                  </View>
+
+                  <TouchableOpacity
+                    style={modalStyles.gpsIconButton}
+                    onPress={handleSetGpsLocation}
+                    disabled={isLocating}
+                  >
+                    {isLocating ? (
+                      <ActivityIndicator size="small" color="#ffffff" />
+                    ) : (
+                      <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 13 }}>📍 Me</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+
+                {searchResults.length > 0 && (
+                  <View style={[modalStyles.resultsContainer, { backgroundColor: theme.inputBg, borderColor: theme.borderColor }]}>
+                    {searchResults.map((item) => (
+                      <TouchableOpacity
+                        key={`${item.id}-${item.latitude}`}
+                        style={[modalStyles.resultItem, { borderBottomColor: theme.borderColor }]}
+                        onPress={() => {
+                          setLocation({
+                            name: item.name,
+                            country: item.country || item.admin1 || '',
+                            latitude: item.latitude,
+                            longitude: item.longitude,
+                          });
+                          setSearchQuery('');
+                          setSearchResults([]);
+                        }}
+                      >
+                        <Text style={{ color: theme.textPrimary, fontSize: 13 }}>
+                          <Text style={{ fontWeight: 'bold' }}>{item.name}</Text>
+                          {item.country ? ` (${item.country})` : ''}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+
+                <View style={modalStyles.targetBadge}>
+                  <Text style={{ color: '#0d6efd', fontWeight: '800', fontSize: 11, letterSpacing: 0.3 }}>ACTIVE ALERT TARGET</Text>
+                  <Text style={{ color: '#0d6efd', fontWeight: '700', fontSize: 12, marginTop: 4 }}>
+                    📍 {location.name}
+                  </Text>
+                  <Text style={{ color: '#0d6efd', fontWeight: '600', fontSize: 11, opacity: 0.9, marginTop: 2 }}>
+                    {location.latitude}°N, {location.longitude}°E
+                  </Text>
+                </View>
+
+                <Text style={[modalStyles.sectionTitle, { color: theme.textPrimary, marginTop: 12 }]}>2. Notification Schedule</Text>
+                <View style={modalStyles.pillGroup}>
+                  {[
+                    { label: '30m', val: 30 },
+                    { label: '1 Hr', val: 60 },
+                    { label: '3 Hrs', val: 180 },
+                  ].map((item) => (
+                    <TouchableOpacity
+                      key={item.val}
+                      style={[modalStyles.pill, intervalMin === item.val && modalStyles.pillActive]}
+                      onPress={() => setIntervalMin(item.val)}
+                    >
+                      <Text style={[modalStyles.pillText, intervalMin === item.val && modalStyles.pillActiveText]}>
+                        {item.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text style={[modalStyles.sectionTitle, { color: theme.textPrimary, marginTop: 12 }]}>3. Variables to Notify</Text>
+                {[
+                  { key: 'temp', label: 'Temperature & Apparent Temp' },
+                  { key: 'precip', label: 'Rainfall & Precip Probability' },
+                  { key: 'wind', label: 'Wind Speed & Max Gusts' },
+                  { key: 'uv', label: 'UV Radiation Index' },
+                ].map((v) => (
+                  <View key={v.key} style={[modalStyles.toggleRow, { borderBottomColor: theme.borderColor }]}>
+                    <Text style={{ fontSize: 13, color: theme.textPrimary, fontWeight: '500' }}>{v.label}</Text>
+                    <Switch
+                      value={vars[v.key]}
+                      onValueChange={(val) => setVars((prev) => ({ ...prev, [v.key]: val }))}
+                      trackColor={{ false: '#767577', true: '#0d6efd' }}
+                    />
+                  </View>
+                ))}
+
+                <Text style={[modalStyles.sectionTitle, { color: theme.textPrimary, marginTop: 12 }]}>4. Alert Badge Color</Text>
+                <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
+                  {colors.map((c) => (
+                    <TouchableOpacity
+                      key={c}
+                      style={[
+                        modalStyles.colorCircle,
+                        { backgroundColor: c },
+                        badgeColor === c && modalStyles.colorActive,
+                      ]}
+                      onPress={() => setBadgeColor(c)}
+                    />
+                  ))}
+                </View>
+              </ScrollView>
+
+              <View style={{ gap: 8, marginTop: 8 }}>
+                <TouchableOpacity style={modalStyles.testButton} onPress={onTestTrigger}>
+                  <Text style={modalStyles.testButtonText}>🔔 Dispatch Instant AI Alert</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    modalStyles.closeModalButton,
+                    { backgroundColor: '#1a73e8', width: '100%' },
+                  ]}
+                  onPress={onSave}
+                >
+                  <Text style={{ color: '#fff', fontWeight: '800', letterSpacing: 0.2 }}>Save Settings</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </GlassView>
         </View>

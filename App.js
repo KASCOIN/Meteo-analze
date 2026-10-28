@@ -13,8 +13,10 @@ import {
   RefreshControl,
   StatusBar,
   Platform,
+  StyleSheet,
   useWindowDimensions,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
@@ -151,6 +153,13 @@ export default function App() {
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const anyModalOpen = isMenuOpen || isSettingsOpen || isArchiveOpen || isNotificationOpen;
+
+  const goBackToMenu = () => {
+    setIsSettingsOpen(false);
+    setIsArchiveOpen(false);
+    setIsNotificationOpen(false);
+    setIsMenuOpen(true);
+  };
 
   useEffect(() => {
     if (typeof document !== 'undefined') {
@@ -534,6 +543,10 @@ export default function App() {
                 paddingTop: Platform.OS === 'web' ? 8 : (StatusBar.currentHeight || 20),
               },
             ]}
+            contentContainerStyle={[
+              styles.pageStack,
+              { paddingBottom: 28 },
+            ]}
             scrollEnabled={!anyModalOpen}
             nestedScrollEnabled={Platform.OS === 'android'}
             keyboardShouldPersistTaps="handled"
@@ -541,158 +554,165 @@ export default function App() {
               <RefreshControl refreshing={refreshing} onRefresh={handleManualRefresh} tintColor="#ffffff" colors={['#1a73e8']} />
             }
           >
-          {/* Header Section */}
-          <View style={styles.headerRow}>
-            <View style={{ flex: 1, marginRight: 8 }}>
-              <Text
-                style={[
-                  styles.header,
-                  { color: isDarkMode ? '#ffffff' : '#0f172a' },
-                ]}
-                numberOfLines={1}
-              >
-                Meteo Analaze ☁️
-              </Text>
-              <Text
-                style={[
-                  styles.subHeader,
-                  { color: isDarkMode ? 'rgba(255, 255, 255, 0.75)' : '#475569' },
-                ]}
-              >
-                Atmospheric Research Portal
-              </Text>
+          <View style={styles.sectionStack}>
+            {/* Header Section */}
+            <View style={styles.headerRow}>
+              <View style={{ flex: 1, marginRight: 8 }}>
+                <Text
+                  style={[
+                    styles.header,
+                    { color: isDarkMode ? '#ffffff' : '#0f172a' },
+                  ]}
+                  numberOfLines={1}
+                >
+                  Meteo Analaze ☁️
+                </Text>
+                <Text
+                  style={[
+                    styles.subHeader,
+                    { color: isDarkMode ? 'rgba(255, 255, 255, 0.75)' : '#475569' },
+                  ]}
+                >
+                  Atmospheric Research Portal
+                </Text>
+              </View>
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <GlassView
+                  variant="chip"
+                  isDarkMode={isDarkMode}
+                  borderRadius={20}
+                  intensity={25}
+                  style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4, gap: 4 }}
+                >
+                  <Text style={{ fontSize: 13 }}>{isDarkMode ? '🌙' : '☀️'}</Text>
+                  <Switch
+                    value={isDarkMode}
+                    onValueChange={setIsDarkMode}
+                    trackColor={{ false: 'rgba(255,255,255,0.4)', true: '#1a73e8' }}
+                    thumbColor={isDarkMode ? '#ffffff' : '#f4f3f4'}
+                  />
+                </GlassView>
+
+                <TouchableOpacity
+                  style={[
+                    styles.navButton,
+                    {
+                      backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.14)' : 'rgba(255, 255, 255, 0.65)',
+                      borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.20)' : 'rgba(255, 255, 255, 0.90)',
+                      paddingHorizontal: 14,
+                      height: 38,
+                    },
+                  ]}
+                  onPress={() => setIsMenuOpen(true)}
+                >
+                  <Text style={[styles.navButtonText, { color: isDarkMode ? '#ffffff' : '#0f172a' }]}>☰</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {/* Offline Status Indicator */}
+            <OfflineBanner isOffline={isOffline} />
+
+            {/* Search & "Me" Button */}
+            <View style={styles.searchRow}>
+              <View style={styles.searchSection}>
+                <TextInput
+                  style={[
+                    styles.searchInput,
+                    {
+                      backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.10)' : 'rgba(255, 255, 255, 0.88)',
+                      color: isDarkMode ? '#ffffff' : '#0f172a',
+                      borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.16)' : 'rgba(255, 255, 255, 0.95)',
+                    },
+                  ]}
+                  placeholder="Search city globally..."
+                  placeholderTextColor={isDarkMode ? 'rgba(255, 255, 255, 0.65)' : '#64748b'}
+                  value={searchQuery}
+                  onChangeText={handleSearch}
+                />
+                {isSearching && (
+                  <ActivityIndicator
+                    size="small"
+                    color={isDarkMode ? '#38bdf8' : '#1a73e8'}
+                    style={styles.searchLoader}
+                  />
+                )}
+              </View>
+
+              <TouchableOpacity style={styles.gpsButton} onPress={handleGetGPSLocation} disabled={isLocating}>
+                {isLocating ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Animated.Text style={[styles.gpsButtonText, { transform: [{ scale: pulseAnim }] }]}>
+                    📍 Me
+                  </Animated.Text>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {searchResults.length > 0 && (
               <GlassView
-                variant="chip"
+                variant="elevated"
                 isDarkMode={isDarkMode}
                 borderRadius={20}
-                intensity={25}
-                style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4, gap: 4 }}
+                style={[styles.resultsContainer, { borderColor: theme.borderColor, marginBottom: 0 }]}
               >
-                <Text style={{ fontSize: 13 }}>{isDarkMode ? '🌙' : '☀️'}</Text>
-                <Switch
-                  value={isDarkMode}
-                  onValueChange={setIsDarkMode}
-                  trackColor={{ false: 'rgba(255,255,255,0.4)', true: '#1a73e8' }}
-                  thumbColor={isDarkMode ? '#ffffff' : '#f4f3f4'}
-                />
+                {searchResults.map((item) => (
+                  <TouchableOpacity
+                    key={`${item.id}-${item.latitude}-${item.longitude}`}
+                    style={[styles.resultItem, { borderBottomColor: theme.borderLight }]}
+                    onPress={() => {
+                      setSelectedLocation({
+                        name: item.name,
+                        country: item.country || item.admin1 || '',
+                        latitude: item.latitude,
+                        longitude: item.longitude,
+                      });
+                      setSearchQuery('');
+                      setSearchResults([]);
+                    }}
+                  >
+                    <Text style={[styles.resultText, { color: isDarkMode ? '#f8fafc' : '#0f172a' }]}>
+                      <Text style={{ fontWeight: 'bold' }}>{item.name}</Text>
+                      {item.country ? ` (${item.country})` : ''}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </GlassView>
-
-              <TouchableOpacity
-                style={[
-                  styles.navButton,
-                  {
-                    backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.14)' : 'rgba(255, 255, 255, 0.65)',
-                    borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.20)' : 'rgba(255, 255, 255, 0.90)',
-                    paddingHorizontal: 14,
-                    height: 38,
-                  },
-                ]}
-                onPress={() => setIsMenuOpen(true)}
-              >
-                <Text style={[styles.navButtonText, { color: isDarkMode ? '#ffffff' : '#0f172a' }]}>☰</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-        {/* Offline Status Indicator */}
-        <OfflineBanner isOffline={isOffline} />
-
-        {/* Search & "Me" Button */}
-        <View style={styles.searchRow}>
-          <View style={styles.searchSection}>
-            <TextInput
-              style={[
-                styles.searchInput,
-                {
-                  backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.10)' : 'rgba(255, 255, 255, 0.88)',
-                  color: isDarkMode ? '#ffffff' : '#0f172a',
-                  borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.16)' : 'rgba(255, 255, 255, 0.95)',
-                },
-              ]}
-              placeholder="Search city globally..."
-              placeholderTextColor={isDarkMode ? 'rgba(255, 255, 255, 0.65)' : '#64748b'}
-              value={searchQuery}
-              onChangeText={handleSearch}
-            />
-            {isSearching && (
-              <ActivityIndicator
-                size="small"
-                color={isDarkMode ? '#38bdf8' : '#1a73e8'}
-                style={styles.searchLoader}
-              />
             )}
-          </View>
 
-          <TouchableOpacity style={styles.gpsButton} onPress={handleGetGPSLocation} disabled={isLocating}>
-            {isLocating ? (
-              <ActivityIndicator size="small" color="#ffffff" />
+            {loading ? (
+              <View style={styles.loaderContainer}>
+                <ActivityIndicator size="large" color="#ffffff" />
+                <Text style={styles.loadingText}>Retrieving atmospheric time-series...</Text>
+              </View>
             ) : (
-              <Animated.Text style={[styles.gpsButtonText, { transform: [{ scale: pulseAnim }] }]}>
-                📍 Me
-              </Animated.Text>
+              <Animated.View style={{ opacity: fadeAnim }}>
+                <WeatherHeroCard
+                  location={selectedLocation}
+                  current={weatherPayload.current}
+                  forecast3Hr={weatherPayload.forecast3Hr}
+                  pulseAnim={pulseAnim}
+                  tempUnit={tempUnit}
+                  speedUnit={speedUnit}
+                  liveDate={formattedLiveDate}
+                  liveTime={formattedLiveTime}
+                  aiSummary={aiSummary}
+                  isDarkMode={isDarkMode}
+                />
+              </Animated.View>
             )}
-          </TouchableOpacity>
-        </View>
-
-        {searchResults.length > 0 && (
-          <GlassView
-            variant="elevated"
-            isDarkMode={isDarkMode}
-            borderRadius={20}
-            style={[styles.resultsContainer, { borderColor: theme.borderColor }]}
-          >
-            {searchResults.map((item) => (
-              <TouchableOpacity
-                key={`${item.id}-${item.latitude}-${item.longitude}`}
-                style={[styles.resultItem, { borderBottomColor: theme.borderLight }]}
-                onPress={() => {
-                  setSelectedLocation({
-                    name: item.name,
-                    country: item.country || item.admin1 || '',
-                    latitude: item.latitude,
-                    longitude: item.longitude,
-                  });
-                  setSearchQuery('');
-                  setSearchResults([]);
-                }}
-              >
-                <Text style={[styles.resultText, { color: isDarkMode ? '#f8fafc' : '#0f172a' }]}>
-                  <Text style={{ fontWeight: 'bold' }}>{item.name}</Text>
-                  {item.country ? ` (${item.country})` : ''}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </GlassView>
-        )}
-
-        {loading ? (
-          <View style={styles.loaderContainer}>
-            <ActivityIndicator size="large" color="#ffffff" />
-            <Text style={styles.loadingText}>Retrieving atmospheric time-series...</Text>
           </View>
-        ) : (
-          <Animated.View style={{ opacity: fadeAnim }}>
-            <WeatherHeroCard
-              location={selectedLocation}
-              current={weatherPayload.current}
-              forecast3Hr={weatherPayload.forecast3Hr}
-              pulseAnim={pulseAnim}
-              tempUnit={tempUnit}
-              speedUnit={speedUnit}
-              liveDate={formattedLiveDate}
-              liveTime={formattedLiveTime}
-              aiSummary={aiSummary}
-              isDarkMode={isDarkMode}
-            />
-          </Animated.View>
-        )}
 
         {/* Remodeled Navigation Menu */}
         <Modal visible={isMenuOpen} transparent animationType="fade" onRequestClose={() => setIsMenuOpen(false)}>
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(10, 16, 28, 0.35)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+            <BlurView
+              intensity={isDarkMode ? 18 : 26}
+              tint={isDarkMode ? 'dark' : 'light'}
+              style={StyleSheet.absoluteFillObject}
+            />
             <GlassView
               variant="elevated"
               isDarkMode={isDarkMode}
@@ -700,25 +720,22 @@ export default function App() {
               intensity={50}
               style={{
                 width: '100%',
-                maxWidth: deviceProfile === 'tablet' || deviceProfile === 'largeTablet' ? 480 : 390,
+                maxWidth: Math.min(windowWidth - 24, deviceProfile === 'tablet' || deviceProfile === 'largeTablet' ? 480 : 390),
                 maxHeight: '82%',
-                padding: windowWidth < 360 ? 16 : 22,
+                padding: windowWidth < 360 ? 14 : 22,
                 minHeight: 0,
               }}
             >
               <ScrollView
                 style={{ flexGrow: 1, minHeight: 0, maxHeight: '100%' }}
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 6, flexGrow: 1 }}
+                contentContainerStyle={{ paddingBottom: 18, flexGrow: 1 }}
                 keyboardShouldPersistTaps="handled"
                 nestedScrollEnabled={Platform.OS === 'android'}
                 bounces={false}
               >
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-                  <Text style={{ fontSize: 20, fontWeight: '800', color: theme.textPrimary }}>☁️ Meteo Navigation</Text>
-                  <TouchableOpacity onPress={() => setIsMenuOpen(false)}>
-                    <Text style={{ fontSize: 22, color: theme.textSecondary, fontWeight: 'bold' }}>✕</Text>
-                  </TouchableOpacity>
+                <View style={{ marginBottom: 18 }}>
+                  <Text style={{ fontSize: 20, fontWeight: '800', color: theme.textPrimary, textAlign: 'center' }}>☁️ Meteo Navigation</Text>
                 </View>
 
                 <View style={{ gap: 12, marginBottom: 10 }}>
@@ -760,7 +777,7 @@ export default function App() {
                       setIsSettingsOpen(true);
                     }}
                   >
-                    <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 15 }}>⚙️ System Preferences</Text>
+                    <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 15 }}>⚙️ Settings</Text>
                     <Text style={{ color: '#ffffff', fontWeight: 'bold' }}>→</Text>
                   </TouchableOpacity>
 
@@ -781,7 +798,7 @@ export default function App() {
                       setIsNotificationOpen(true);
                     }}
                   >
-                    <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 15 }}>🔔 6 AM Briefs & Alerts</Text>
+                    <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 15 }}>🔔 Notifications</Text>
                     <Text style={{ color: '#ffffff', fontWeight: 'bold' }}>→</Text>
                   </TouchableOpacity>
                 </View>
@@ -803,11 +820,18 @@ export default function App() {
           </View>
         </Modal>
 
-        <ArchiveModal isOpen={isArchiveOpen} onClose={() => setIsArchiveOpen(false)} defaultLocation={selectedLocation} theme={theme} />
+        <ArchiveModal
+          isOpen={isArchiveOpen}
+          onClose={() => setIsArchiveOpen(false)}
+          onBack={goBackToMenu}
+          defaultLocation={selectedLocation}
+          theme={theme}
+        />
 
         <NotificationModal
           isOpen={isNotificationOpen}
           onClose={() => setIsNotificationOpen(false)}
+          onBack={goBackToMenu}
           isEnabled={isNotifyEnabled}
           setIsEnabled={setIsNotifyEnabled}
           location={notifyLocation}
@@ -819,6 +843,10 @@ export default function App() {
           vars={notifyVars}
           setVars={setNotifyVars}
           onTestTrigger={triggerNotificationCheck}
+          onSave={() => {
+            setIsNotificationOpen(false);
+            showAlert('Alert Preferences Saved', 'Your notification settings have been updated.', 'success');
+          }}
           theme={theme}
         />
 
@@ -826,8 +854,8 @@ export default function App() {
           isOpen={isSettingsOpen}
           onClose={() => {
             setIsSettingsOpen(false);
-            showAlert('Settings Saved', 'System preferences saved to persistent storage.', 'success');
           }}
+          onBack={goBackToMenu}
           isDarkMode={isDarkMode}
           setIsDarkMode={setIsDarkMode}
           tempUnit={tempUnit}
@@ -835,6 +863,10 @@ export default function App() {
           speedUnit={speedUnit}
           setSpeedUnit={setSpeedUnit}
           onOpenAlerts={() => setIsNotificationOpen(true)}
+          onSave={() => {
+            setIsSettingsOpen(false);
+            showAlert('Settings Saved', 'System preferences saved to persistent storage.', 'success');
+          }}
           theme={theme}
         />
 

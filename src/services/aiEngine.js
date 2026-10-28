@@ -3,8 +3,19 @@
  * Primary path: Google Gemini with live weather-grounded prompts.
  * Fallback path: concise rule-based advice when the API is unavailable.
  */
-const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || '';
-const GEMINI_MODELS = ['gemini-2.5-flash'];
+const getGeminiApiKey = () => {
+  if (typeof process !== 'undefined' && process?.env) {
+    return process.env.EXPO_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY || '';
+  }
+
+  if (typeof globalThis !== 'undefined') {
+    return globalThis.EXPO_PUBLIC_GEMINI_API_KEY || globalThis.GEMINI_API_KEY || '';
+  }
+
+  return '';
+};
+
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-latest'];
 
 const extractGeminiText = (payload) => {
   const candidates = payload?.candidates || [];
@@ -88,7 +99,11 @@ export const fetchGeminiWeatherAdvice = async ({
   weatherSnapshot = null,
   isForNotification = false,
 }) => {
-  if (!current || !GEMINI_API_KEY) return null;
+  const apiKey = getGeminiApiKey();
+  if (!current || !apiKey) {
+    console.warn('Gemini request skipped: missing EXPO_PUBLIC_GEMINI_API_KEY');
+    return null;
+  }
 
   const snapshotText = buildWeatherSnapshotText(locationName, current, wmoDesc, tempUnit, weatherSnapshot);
   const prompt = isForNotification
@@ -107,7 +122,7 @@ export const fetchGeminiWeatherAdvice = async ({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-goog-api-key': GEMINI_API_KEY,
+            'X-goog-api-key': apiKey,
           },
           signal: controller.signal,
           body: JSON.stringify({
@@ -165,5 +180,5 @@ export const fetchKiloAiWeatherSummary = async ({
   });
 
   if (geminiAdvice) return geminiAdvice;
-  return 'Gemini advisory is currently unavailable. Please retry in a moment.';
+  return buildProfessionalFallbackAdvice({ locationName, current, wmoDesc, tempUnit });
 };

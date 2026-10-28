@@ -13,13 +13,14 @@ import {
   KeyboardAvoidingView,
   useWindowDimensions,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { searchLocations } from '../services/geocodingEngine';
 import { exportArchiveCSV } from '../services/csvExporter';
 import { GlassView } from './GlassView';
 import { getDeviceProfile, getResponsiveScale } from '../styles/responsive';
 
-export const ArchiveModal = ({ isOpen, onClose, defaultLocation, theme }) => {
+export const ArchiveModal = ({ isOpen, onClose, onBack, defaultLocation, theme }) => {
   const [targetLocation, setTargetLocation] = useState(defaultLocation);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -77,171 +78,190 @@ export const ArchiveModal = ({ isOpen, onClose, defaultLocation, theme }) => {
 
   const isDarkMode = theme?.textPrimary !== '#0f172a';
 
+  const modalWidth = windowWidth < 360 ? windowWidth - 20 : windowWidth < 768 ? Math.min(windowWidth - 28, 480) : 480;
+  const modalHeight = Math.min(windowHeight * 0.8, windowWidth < 768 ? 560 : 700);
+
   return (
     <Modal visible={isOpen} transparent animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={modalStyles.backdrop}>
+          <BlurView intensity={isDarkMode ? 18 : 24} tint={isDarkMode ? 'dark' : 'light'} style={StyleSheet.absoluteFillObject} />
           <GlassView
             variant="elevated"
             isDarkMode={isDarkMode}
             borderRadius={26}
             intensity={50}
+            contentStyle={{ flex: 1, minHeight: 0 }}
             style={[
               modalStyles.card,
               {
                 borderColor: theme.borderColor,
-                maxWidth: deviceProfile === 'tablet' || deviceProfile === 'largeTablet' ? 560 : 480,
+                width: modalWidth,
+                maxWidth: modalWidth,
+                height: modalHeight,
+                maxHeight: modalHeight,
                 padding: windowWidth < 360 ? 16 : 20,
                 minHeight: 0,
-                maxHeight: '85%',
-                height: '85%',
-                flex: 1,
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
               },
             ]}
           >
-            {/* Header */}
-            <View style={modalStyles.headerRow}>
-              <View>
-                <Text style={[modalStyles.title, { color: theme.textPrimary }]}>📊 Professional Climate Archive</Text>
-                <Text style={[modalStyles.subtitle, { color: theme.textSecondary }]}>Export historical datasets to CSV</Text>
-              </View>
-              <TouchableOpacity onPress={onClose} style={modalStyles.closeButton}>
-                <Text style={{ fontSize: 20, color: theme.textSecondary, fontWeight: 'bold' }}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView
-              style={{ marginBottom: 12, flexGrow: 1, minHeight: 0, maxHeight: '100%' }}
-              keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ paddingBottom: Math.max(insets.bottom + 16, 24), flexGrow: 1 }}
-              nestedScrollEnabled={Platform.OS === 'android'}
-              bounces={false}
-              showsVerticalScrollIndicator={false}
-            >
-            
-            {/* 1. Target Location */}
-            <Text style={[modalStyles.sectionTitle, { color: theme.textPrimary }]}>1. Target Location</Text>
-            <View style={{ position: 'relative', marginBottom: 6 }}>
-              <TextInput
-                style={[
-                  modalStyles.input,
-                  { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.borderColor },
-                ]}
-                placeholder="Search archive city globally..."
-                placeholderTextColor={theme.textSecondary}
-                value={searchQuery}
-                onChangeText={handleSearch}
-              />
-              {isSearching && <ActivityIndicator size="small" color="#0d6efd" style={modalStyles.searchLoader} />}
-            </View>
-
-            {searchResults.length > 0 && (
-              <View style={[modalStyles.resultsContainer, { backgroundColor: theme.inputBg, borderColor: theme.borderColor }]}>
-                {searchResults.map((item) => (
-                  <TouchableOpacity
-                    key={`${item.id}-${item.latitude}`}
-                    style={[modalStyles.resultItem, { borderBottomColor: theme.borderColor }]}
-                    onPress={() => {
-                      setTargetLocation({
-                        name: item.name,
-                        country: item.country || item.admin1 || '',
-                        latitude: item.latitude,
-                        longitude: item.longitude,
-                      });
-                      setSearchQuery('');
-                      setSearchResults([]);
-                    }}
-                  >
-                    <Text style={{ color: theme.textPrimary, fontSize: 13 }}>
-                      <Text style={{ fontWeight: 'bold' }}>{item.name}</Text>
-                      {item.country ? ` (${item.country})` : ''}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-
-            <Text style={[modalStyles.selectedText, { color: '#0d6efd' }]}>
-              Selected: 📍 {targetLocation.name} ({targetLocation.latitude}°N, {targetLocation.longitude}°E)
-            </Text>
-
-            {/* 2. Granularity */}
-            <Text style={[modalStyles.sectionTitle, { color: theme.textPrimary, marginTop: 14 }]}>2. Time Granularity</Text>
-            <View style={modalStyles.pillGroup}>
-              {['daily', 'hourly'].map((g) => (
+            <View style={{ flex: 1, minHeight: 0 }}>
+              <View style={[modalStyles.headerRow, { gap: 10 }]}> 
                 <TouchableOpacity
-                  key={g}
-                  style={[modalStyles.pill, granularity === g && modalStyles.pillActive]}
-                  onPress={() => setGranularity(g)}
+                  onPress={onBack}
+                  style={{
+                    backgroundColor: '#1a73e8',
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    borderRadius: 10,
+                    minWidth: 72,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    shadowColor: '#1a73e8',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.18,
+                    shadowRadius: 6,
+                    elevation: 3,
+                  }}
                 >
-                  <Text style={[modalStyles.pillText, granularity === g && modalStyles.pillActiveText]}>
-                    {g.toUpperCase()}
-                  </Text>
+                  <Text style={{ fontSize: 12, color: '#fff', fontWeight: '800' }}>← Back</Text>
                 </TouchableOpacity>
-              ))}
-            </View>
 
-            {/* 3. Time Horizon */}
-            <Text style={[modalStyles.sectionTitle, { color: theme.textPrimary, marginTop: 14 }]}>3. Time Horizon Range</Text>
-            <View style={modalStyles.pillGroup}>
-              {['1m', '6m', '1y', '3y'].map((r) => (
-                <TouchableOpacity
-                  key={r}
-                  style={[modalStyles.pill, range === r && modalStyles.pillActive]}
-                  onPress={() => setRange(r)}
-                >
-                  <Text style={[modalStyles.pillText, range === r && modalStyles.pillActiveText]}>
-                    {r.toUpperCase()}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* 4. Meteorological Variables */}
-            <Text style={[modalStyles.sectionTitle, { color: theme.textPrimary, marginTop: 14 }]}>4. Meteorological Variables</Text>
-            
-            {[
-              { key: 'temperature', label: 'Temperature (°C)' },
-              { key: 'precipitation', label: 'Precipitation (mm)' },
-              { key: 'wind', label: 'Wind Speed (km/h)' },
-              { key: 'solar', label: 'Solar Radiation (MJ/m²)' },
-              { key: 'evapotranspiration', label: 'Evapotranspiration (mm)' },
-            ].map((v) => (
-              <View key={v.key} style={[modalStyles.toggleRow, { borderBottomColor: theme.borderColor }]}>
-                <Text style={{ fontSize: 14, color: theme.textPrimary, fontWeight: '500' }}>{v.label}</Text>
-                <Switch
-                  value={variables[v.key]}
-                  onValueChange={(val) => setVariables((prev) => ({ ...prev, [v.key]: val }))}
-                  trackColor={{ false: '#767577', true: '#0d6efd' }}
-                />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={[modalStyles.title, { color: theme.textPrimary, fontSize: 18 }]} numberOfLines={2}>📊 Archive</Text>
+                  <Text style={[modalStyles.subtitle, { color: theme.textSecondary }]} numberOfLines={2}>Export historical datasets to CSV</Text>
+                </View>
               </View>
-            ))}
 
-            </ScrollView>
-
-            {/* Actions */}
-            <View style={{ gap: 8 }}>
-              <TouchableOpacity
-                style={[modalStyles.exportButton, isExporting && { opacity: 0.7 }]}
-                onPress={handleExport}
-                disabled={isExporting}
+              <ScrollView
+                style={{ flex: 1, minHeight: 0, marginBottom: 12 }}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ paddingBottom: Math.max(insets.bottom + 28, 28), paddingHorizontal: 2 }}
+                nestedScrollEnabled={Platform.OS === 'android'}
+                bounces={false}
+                showsVerticalScrollIndicator={false}
               >
-                {isExporting ? (
-                  <ActivityIndicator size="small" color="#ffffff" />
-                ) : (
-                  <Text style={modalStyles.exportButtonText}>📥 Generate & Download CSV Dataset</Text>
+                <Text style={[modalStyles.sectionTitle, { color: theme.textPrimary }]}>1. Target Location</Text>
+                <View style={{ position: 'relative', marginBottom: 6 }}>
+                  <TextInput
+                    style={[
+                      modalStyles.input,
+                      { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.borderColor },
+                    ]}
+                    placeholder="Search archive city globally..."
+                    placeholderTextColor={theme.textSecondary}
+                    value={searchQuery}
+                    onChangeText={handleSearch}
+                  />
+                  {isSearching && <ActivityIndicator size="small" color="#0d6efd" style={modalStyles.searchLoader} />}
+                </View>
+
+                {searchResults.length > 0 && (
+                  <View style={[modalStyles.resultsContainer, { backgroundColor: theme.inputBg, borderColor: theme.borderColor }]}>
+                    {searchResults.map((item) => (
+                      <TouchableOpacity
+                        key={`${item.id}-${item.latitude}`}
+                        style={[modalStyles.resultItem, { borderBottomColor: theme.borderColor }]}
+                        onPress={() => {
+                          setTargetLocation({
+                            name: item.name,
+                            country: item.country || item.admin1 || '',
+                            latitude: item.latitude,
+                            longitude: item.longitude,
+                          });
+                          setSearchQuery('');
+                          setSearchResults([]);
+                        }}
+                      >
+                        <Text style={{ color: theme.textPrimary, fontSize: 13 }}>
+                          <Text style={{ fontWeight: 'bold' }}>{item.name}</Text>
+                          {item.country ? ` (${item.country})` : ''}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 )}
-              </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[
-                  modalStyles.cancelButton,
-                  { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.06)' },
-                ]}
-                onPress={onClose}
-              >
-                <Text style={{ color: theme.textPrimary, fontWeight: 'bold' }}>Cancel</Text>
-              </TouchableOpacity>
+                <Text style={[modalStyles.selectedText, { color: '#0d6efd' }]}>
+                  Selected: 📍 {targetLocation.name} ({targetLocation.latitude}°N, {targetLocation.longitude}°E)
+                </Text>
+
+                <Text style={[modalStyles.sectionTitle, { color: theme.textPrimary, marginTop: 14 }]}>2. Time Granularity</Text>
+                <View style={modalStyles.pillGroup}>
+                  {['daily', 'hourly'].map((g) => (
+                    <TouchableOpacity
+                      key={g}
+                      style={[modalStyles.pill, granularity === g && modalStyles.pillActive]}
+                      onPress={() => setGranularity(g)}
+                    >
+                      <Text style={[modalStyles.pillText, granularity === g && modalStyles.pillActiveText]}>
+                        {g.toUpperCase()}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text style={[modalStyles.sectionTitle, { color: theme.textPrimary, marginTop: 14 }]}>3. Time Horizon Range</Text>
+                <View style={modalStyles.pillGroup}>
+                  {['1m', '6m', '1y', '3y'].map((r) => (
+                    <TouchableOpacity
+                      key={r}
+                      style={[modalStyles.pill, range === r && modalStyles.pillActive]}
+                      onPress={() => setRange(r)}
+                    >
+                      <Text style={[modalStyles.pillText, range === r && modalStyles.pillActiveText]}>
+                        {r.toUpperCase()}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text style={[modalStyles.sectionTitle, { color: theme.textPrimary, marginTop: 14 }]}>4. Meteorological Variables</Text>
+
+                {[
+                  { key: 'temperature', label: 'Temperature (°C)' },
+                  { key: 'precipitation', label: 'Precipitation (mm)' },
+                  { key: 'wind', label: 'Wind Speed (km/h)' },
+                  { key: 'solar', label: 'Solar Radiation (MJ/m²)' },
+                  { key: 'evapotranspiration', label: 'Evapotranspiration (mm)' },
+                ].map((v) => (
+                  <View key={v.key} style={[modalStyles.toggleRow, { borderBottomColor: theme.borderColor }]}>
+                    <Text style={{ fontSize: 14, color: theme.textPrimary, fontWeight: '500' }}>{v.label}</Text>
+                    <Switch
+                      value={variables[v.key]}
+                      onValueChange={(val) => setVariables((prev) => ({ ...prev, [v.key]: val }))}
+                      trackColor={{ false: '#767577', true: '#0d6efd' }}
+                    />
+                  </View>
+                ))}
+              </ScrollView>
+
+              <View style={{ gap: 8 }}>
+                <TouchableOpacity
+                  style={[modalStyles.exportButton, isExporting && { opacity: 0.7 }]}
+                  onPress={handleExport}
+                  disabled={isExporting}
+                >
+                  {isExporting ? (
+                    <ActivityIndicator size="small" color="#ffffff" />
+                  ) : (
+                    <Text style={modalStyles.exportButtonText}>📥 Generate & Download CSV Dataset</Text>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    modalStyles.cancelButton,
+                    { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.06)' },
+                  ]}
+                  onPress={onClose}
+                >
+                  <Text style={{ color: theme.textPrimary, fontWeight: 'bold' }}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </GlassView>
         </View>

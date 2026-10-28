@@ -192,4 +192,12 @@ export const styles = StyleSheet.create({
     fontSize: 12.5,
     fontWeight: '800',
   },
+  pageStack: {
+    width: '100%',
+    gap: 12,
+    paddingBottom: 18,
+  },
+  sectionStack: {
+    gap: 10,
+  },
 });

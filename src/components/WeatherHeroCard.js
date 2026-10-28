@@ -116,16 +116,22 @@ export const WeatherHeroCard = ({
       </View>
 
       {/* 2. Main Temperature Banner */}
-      <View style={[styles.mainMetricsRow, deviceProfile === 'tablet' && styles.mainMetricsRowTablet]}>
+      <View
+        style={[
+          styles.mainMetricsRow,
+          deviceProfile === 'tablet' && styles.mainMetricsRowTablet,
+          (deviceProfile === 'smallPhone' || deviceProfile === 'tinyPhone' || deviceProfile === 'standardPhone') && styles.mainMetricsRowPhone,
+        ]}
+      >
         <View style={styles.tempLeftGroup}>
-          <Text style={[styles.weatherIcon, { fontSize: 48 * responsiveScale }]}>{wmo.icon}</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-            <Text style={[styles.tempValue, { color: palette.temp, fontSize: 48 * responsiveScale, lineHeight: (52 * responsiveScale) }]}>{convertTemp(current.temp, tempUnit)}</Text>
+          <Text style={[styles.weatherIcon, { fontSize: 50 * responsiveScale }]}>{wmo.icon}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginTop: 2 }}>
+            <Text style={[styles.tempValue, { color: palette.temp, fontSize: 52 * responsiveScale, lineHeight: 54 * responsiveScale }]}>{convertTemp(current.temp, tempUnit)}</Text>
             <Text style={[styles.tempUnitText, { color: palette.tempUnit, fontSize: 22 * responsiveScale }]} >°{tempUnit}</Text>
           </View>
         </View>
 
-        <View style={styles.conditionRightGroup}>
+        <View style={[(deviceProfile === 'smallPhone' || deviceProfile === 'tinyPhone' || deviceProfile === 'standardPhone') && styles.conditionRightGroupPhone, styles.conditionRightGroup]}>
           <Text style={[styles.conditionTitle, { color: palette.condition, fontSize: 19 * responsiveScale }]} numberOfLines={1}>
             {wmo.desc}
           </Text>
@@ -153,13 +159,13 @@ export const WeatherHeroCard = ({
       </GlassView>
 
       {/* 4. Telemetry Metrics Grid */}
-      <View style={styles.telemetryGrid}>
+      <View style={[styles.telemetryGrid, screenWidth < 420 && styles.telemetryGridCompact]}>
         <GlassView
           isDarkMode={isDarkMode}
           variant="chip"
           borderRadius={18}
           intensity={25}
-          style={styles.telemetryCard}
+          style={[styles.telemetryCard, screenWidth < 420 && styles.telemetryCardCompact]}
         >
           <Text style={[styles.telemetryIcon, { fontSize: 20 * responsiveScale }]}>💧</Text>
           <Text style={[styles.telemetryLabel, { color: palette.telemLabel, fontSize: 10 * responsiveScale }]}>HUMIDITY</Text>
@@ -174,7 +180,7 @@ export const WeatherHeroCard = ({
           variant="chip"
           borderRadius={18}
           intensity={25}
-          style={styles.telemetryCard}
+          style={[styles.telemetryCard, screenWidth < 420 && styles.telemetryCardCompact]}
         >
           <Text style={[styles.telemetryIcon, { fontSize: 20 * responsiveScale }]}>💨</Text>
           <Text style={[styles.telemetryLabel, { color: palette.telemLabel, fontSize: 10 * responsiveScale }]}>WIND SPEED</Text>
@@ -191,7 +197,7 @@ export const WeatherHeroCard = ({
           variant="chip"
           borderRadius={18}
           intensity={25}
-          style={styles.telemetryCard}
+          style={[styles.telemetryCard, screenWidth < 420 && styles.telemetryCardCompact]}
         >
           <Text style={[styles.telemetryIcon, { fontSize: 20 * responsiveScale }]}>☀️</Text>
           <Text style={[styles.telemetryLabel, { color: palette.telemLabel, fontSize: 10 * responsiveScale }]}>UV INDEX</Text>
@@ -206,7 +212,7 @@ export const WeatherHeroCard = ({
           variant="chip"
           borderRadius={18}
           intensity={25}
-          style={styles.telemetryCard}
+          style={[styles.telemetryCard, screenWidth < 420 && styles.telemetryCardCompact]}
         >
           <Text style={[styles.telemetryIcon, { fontSize: 20 * responsiveScale }]}>⏲️</Text>
           <Text style={[styles.telemetryLabel, { color: palette.telemLabel, fontSize: 10 * responsiveScale }]}>PRESSURE</Text>
@@ -221,7 +227,7 @@ export const WeatherHeroCard = ({
           variant="chip"
           borderRadius={18}
           intensity={25}
-          style={styles.telemetryCard}
+          style={[styles.telemetryCard, screenWidth < 420 && styles.telemetryCardCompact]}
         >
           <Text style={[styles.telemetryIcon, { fontSize: 20 * responsiveScale }]}>☁️</Text>
           <Text style={[styles.telemetryLabel, { color: palette.telemLabel, fontSize: 10 * responsiveScale }]}>CLOUD COVER</Text>
@@ -236,7 +242,7 @@ export const WeatherHeroCard = ({
           variant="chip"
           borderRadius={18}
           intensity={25}
-          style={styles.telemetryCard}
+          style={[styles.telemetryCard, screenWidth < 420 && styles.telemetryCardCompact]}
         >
           <Text style={[styles.telemetryIcon, { fontSize: 20 * responsiveScale }]}>👁️</Text>
           <Text style={[styles.telemetryLabel, { color: palette.telemLabel, fontSize: 10 * responsiveScale }]}>VISIBILITY</Text>
@@ -277,8 +283,11 @@ export const WeatherHeroCard = ({
 
 const styles = StyleSheet.create({
   heroOuter: {
-    padding: 22,
-    marginVertical: 10,
+    padding: 18,
+    marginVertical: 0,
+    width: '100%',
+    maxWidth: 980,
+    alignSelf: 'center',
     ...Platform.select({
       web: {
         boxShadow: '0 16px 40px 0 rgba(15, 23, 42, 0.12)',
@@ -362,18 +371,25 @@ const styles = StyleSheet.create({
   mainMetricsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    marginBottom: 12,
+    alignItems: 'flex-end',
+    paddingVertical: 10,
+    marginBottom: 8,
+    gap: 12,
   },
   mainMetricsRowTablet: {
     alignItems: 'flex-start',
     gap: 16,
   },
+  mainMetricsRowPhone: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
   tempLeftGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    flexShrink: 1,
   },
   weatherIcon: {
     fontSize: 48,
@@ -391,7 +407,13 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   conditionRightGroup: {
-    alignItems: 'flex-end',
+    alignItems: 'flex-start',
+    flex: 1,
+    minWidth: 0,
+  },
+  conditionRightGroupPhone: {
+    alignItems: 'center',
+    width: '100%',
   },
   conditionTitle: {
     fontSize: 19,
@@ -424,14 +446,22 @@ const styles = StyleSheet.create({
   telemetryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    justifyContent: 'space-between',
+    gap: 8,
     marginBottom: 16,
   },
+  telemetryGridCompact: {
+    gap: 10,
+  },
   telemetryCard: {
-    flex: 1,
-    minWidth: '28%',
+    flexBasis: '31%',
+    minWidth: 108,
     padding: 12,
     alignItems: 'center',
+  },
+  telemetryCardCompact: {
+    flexBasis: '48%',
+    minWidth: 0,
   },
   telemetryIcon: {
     fontSize: 20,
