@@ -39,8 +39,8 @@ export const CustomAlertModal = ({ visible, title, message, type = 'info', onClo
             },
           ]}
         >
-          <View style={[alertStyles.iconBadge, { backgroundColor: styleConfig.badgeBg, borderColor: '#334155' }]}>
-            <Ionicons name={styleConfig.iconName} size={28} color={styleConfig.accent} />
+          <View style={[alertStyles.iconBadge, { backgroundColor: 'rgba(34, 197, 94, 0.15)', borderColor: '#334155' }]}>
+            <Ionicons name={styleConfig.iconName} size={28} color="#22c55e" />
           </View>
 
           <Text style={[alertStyles.title, { color: '#ffffff' }]}>
@@ -78,6 +78,7 @@ const alertStyles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderRadius: 20,
+    backgroundColor: '#1e293b',
     ...Platform.select({
       web: { boxShadow: '0 16px 40px rgba(0,0,0,0.4)' },
       default: { elevation: 10 },
@@ -90,6 +91,7 @@ const alertStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
+    backgroundColor: 'rgba(34, 197, 94, 0.15)',
   },
   title: {
     fontSize: 20,

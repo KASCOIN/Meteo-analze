@@ -283,7 +283,7 @@ export const WeatherHeroCard = ({
 
 const styles = StyleSheet.create({
   heroOuter: {
-    padding: 18,
+    padding: 12,
     marginVertical: 0,
     width: '100%',
     maxWidth: 980,
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   topHeaderRowCompact: {
     alignItems: 'center',
@@ -372,9 +372,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
-    paddingVertical: 10,
-    marginBottom: 8,
-    gap: 12,
+    paddingVertical: 4,
+    marginBottom: 4,
+    gap: 10,
   },
   mainMetricsRowTablet: {
     alignItems: 'flex-start',
@@ -426,8 +426,8 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   aiPanel: {
-    padding: 14,
-    marginBottom: 16,
+    padding: 10,
+    marginBottom: 10,
     borderLeftWidth: 4,
   },
   aiHeaderRow: {
@@ -447,8 +447,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    gap: 8,
-    marginBottom: 16,
+    gap: 6,
+    marginBottom: 8,
   },
   telemetryGridCompact: {
     gap: 10,

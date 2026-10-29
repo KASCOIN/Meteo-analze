@@ -17,6 +17,7 @@ import {
   useWindowDimensions,
   Linking,
 } from 'react-native';
+import Constants from 'expo-constants';
 import { BlurView } from 'expo-blur';
 
 import * as Location from 'expo-location';
@@ -44,15 +45,15 @@ import {
   initializeNotificationSystem,
   scheduleDailyMorningBriefing,
   getExpoPushToken,
-  openBatteryOptimizationSettings,
 } from './src/services/notificationService';
 import { getCityFromCoordinates } from './src/services/locationService';
-import { updateHomeWidget, registerHomeWidgetTaskHandler } from './src/services/widgetService';
 
 import { WeatherHeroCard } from './src/components/WeatherHeroCard';
 import { ArchiveModal } from './src/components/ArchiveModal';
 import { NotificationModal } from './src/components/NotificationModal';
 import { SettingsModal } from './src/components/SettingsModal';
+import { NavigationModal } from './src/components/NavigationModal';
+import { CompassModal } from './src/components/CompassModal';
 import { OfflineBanner } from './src/components/OfflineBanner';
 import { CustomAlertModal } from './src/components/CustomAlertModal';
 import { GlassView } from './src/components/GlassView';
@@ -109,12 +110,25 @@ if (Platform.OS !== 'web') {
   });
 }
 
+const isExpoGo = Constants.appOwnership === 'expo';
+export const isNativeApp = !isExpoGo && Platform.OS !== 'web';
+
+console.log('[Meteo Debug] runtime:', {
+  platform: Platform.OS,
+  isExpoGo,
+  isNativeApp,
+  mode: Platform.OS === 'web' ? 'WEB' : isExpoGo ? 'EXPO_GO_TEST_MODE' : 'REAL_NATIVE_BUILD',
+});
+
+if (!isNativeApp) {
+  console.warn('[Meteo Debug] Running outside a real native build. Native-only features may be limited or unavailable.');
+}
+
 export default function App() {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [currentTime, setCurrentTime] = useState(new Date());
   const deviceProfile = getDeviceProfile(windowWidth, windowHeight);
   const responsiveScale = getResponsiveScale(windowWidth);
-  const touchStartY = useRef(0);
 
   const [selectedLocation, setSelectedLocation] = useState({
     name: 'Current Position',
@@ -169,27 +183,27 @@ export default function App() {
 
   // Modals
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isCompassVisible, setIsCompassVisible] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-  const anyModalOpen = isMenuOpen || isSettingsOpen || isArchiveOpen || isNotificationOpen;
+  const anyModalOpen = isMenuOpen || isSettingsOpen || isArchiveOpen || isNotificationOpen || isCompassVisible;
 
   const goBackToMenu = () => {
     setIsSettingsOpen(false);
     setIsArchiveOpen(false);
     setIsNotificationOpen(false);
+    setIsCompassVisible(false);
     setIsMenuOpen(true);
   };
 
   useEffect(() => {
     if (typeof document !== 'undefined') {
       document.body.style.overflow = anyModalOpen ? 'hidden' : '';
-      document.body.style.touchAction = anyModalOpen ? 'none' : '';
     }
     return () => {
       if (typeof document !== 'undefined') {
         document.body.style.overflow = '';
-        document.body.style.touchAction = '';
       }
     };
   }, [anyModalOpen]);
@@ -240,11 +254,19 @@ export default function App() {
       const savedTemp = await getUserPreferences('tempUnit', 'C');
       const savedSpeed = await getUserPreferences('speedUnit', 'kmh');
       const savedNotifyLoc = await getUserPreferences('notifyLocation', null);
+      const savedNotifyEnabled = await getUserPreferences('isNotifyEnabled', false);
+      const savedNotifyInterval = await getUserPreferences('notifyIntervalMin', 60);
+      const savedNotifyBadgeColor = await getUserPreferences('notifyBadgeColor', '#0d6efd');
+      const savedNotifyVars = await getUserPreferences('notifyVars', { temp: true, precip: true, wind: true, uv: true });
 
       setIsDarkMode(savedDark);
       setTempUnit(savedTemp);
       setSpeedUnit(savedSpeed);
       if (savedNotifyLoc) setNotifyLocation(savedNotifyLoc);
+      setIsNotifyEnabled(savedNotifyEnabled);
+      setNotifyIntervalMin(savedNotifyInterval);
+      setNotifyBadgeColor(savedNotifyBadgeColor);
+      setNotifyVars(savedNotifyVars);
 
       if (isApp) {
         try {
@@ -253,9 +275,6 @@ export default function App() {
           const pushToken = await getExpoPushToken();
           if (pushToken) {
             console.log('Expo push token:', pushToken);
-          }
-          if (Platform.OS === 'android') {
-            await openBatteryOptimizationSettings();
           }
         } catch (error) {
           console.warn('Native app initialization failed:', error);
@@ -298,7 +317,11 @@ export default function App() {
     saveUserPreferences('speedUnit', speedUnit);
     saveUserPreferences('selectedLocation', selectedLocation);
     saveUserPreferences('notifyLocation', notifyLocation);
-  }, [isDarkMode, tempUnit, speedUnit, selectedLocation, notifyLocation]);
+    saveUserPreferences('isNotifyEnabled', isNotifyEnabled);
+    saveUserPreferences('notifyIntervalMin', notifyIntervalMin);
+    saveUserPreferences('notifyBadgeColor', notifyBadgeColor);
+    saveUserPreferences('notifyVars', notifyVars);
+  }, [isDarkMode, tempUnit, speedUnit, selectedLocation, notifyLocation, isNotifyEnabled, notifyIntervalMin, notifyBadgeColor, notifyVars]);
 
   // 3. Load Weather Data (Supports Live API & Offline Local Cache Fallback)
   useEffect(() => {
@@ -324,15 +347,6 @@ export default function App() {
           });
           if (aiText) setAiSummary(aiText);
 
-          if (isApp) {
-            await updateHomeWidget({
-              location: selectedLocation,
-              current: data.current,
-              wmoDesc: wmo.desc,
-              locationName: selectedLocation.name,
-              aiSummary: aiText,
-            });
-          }
         } else {
           throw new Error('API unreachable');
         }
@@ -370,22 +384,6 @@ export default function App() {
         setIsOffline(true);
       } finally {
         setRefreshing(false);
-      }
-    }
-  };
-
-  const handleTouchStartWeb = (e) => {
-    if (Platform.OS === 'web' && e.touches?.[0]) {
-      touchStartY.current = e.touches[0].clientY;
-    }
-  };
-
-  const handleTouchMoveWeb = (e) => {
-    if (Platform.OS === 'web' && e.touches?.[0] && typeof window !== 'undefined') {
-      const currentY = e.touches[0].clientY;
-      const diffY = currentY - touchStartY.current;
-      if (window.scrollY <= 0 && diffY > 80) {
-        window.location.reload();
       }
     }
   };
@@ -525,12 +523,6 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (isApp) {
-      registerHomeWidgetTaskHandler();
-    }
-  }, []);
-
-  useEffect(() => {
     if (isApp && Notifications.addNotificationResponseReceivedListener) {
       const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
         const actionId = response.actionIdentifier;
@@ -547,15 +539,16 @@ export default function App() {
 
   const formattedLiveTime = currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   const formattedLiveDate = currentTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-  const containerMaxWidth = windowWidth > 1024 ? 900 : windowWidth > 768 ? 720 : '100%';
+  const isCompactPhone = windowWidth < 390;
+  const isTablet = windowWidth >= 768;
+  const isDesktop = windowWidth >= 1200;
+  const containerMaxWidth = isDesktop ? 980 : isTablet ? 760 : '100%';
+  const shellPaddingX = isCompactPhone ? 8 : isTablet ? 16 : 14;
+  const shellPaddingTop = Platform.OS === 'web' ? (isCompactPhone ? 10 : 14) : (StatusBar.currentHeight || 18);
 
   return (
     <SafeAreaProvider>
-      <View
-        style={{ flex: 1, backgroundColor: theme.bg, alignItems: 'center' }}
-        onTouchStart={handleTouchStartWeb}
-        onTouchMove={handleTouchMoveWeb}
-      >
+      <View style={{ flex: 1, backgroundColor: theme.bg, alignItems: 'center' }}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
         <WeatherGradientBackground
@@ -570,77 +563,153 @@ export default function App() {
                 backgroundColor: 'transparent',
                 width: '100%',
                 maxWidth: containerMaxWidth,
-                paddingHorizontal: 12,
-                paddingTop: Platform.OS === 'web' ? 8 : (StatusBar.currentHeight || 20),
+                alignSelf: 'center',
+                flex: 1,
+                paddingHorizontal: shellPaddingX,
+                paddingTop: shellPaddingTop,
               },
             ]}
             contentContainerStyle={[
               styles.pageStack,
-              { paddingBottom: 28 },
+              { paddingBottom: 32, paddingTop: 6, flexGrow: 1 },
             ]}
             scrollEnabled={!anyModalOpen}
             nestedScrollEnabled={Platform.OS === 'android'}
             keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={handleManualRefresh} tintColor="#ffffff" colors={['#1a73e8']} />
             }
           >
-          <View style={styles.sectionStack}>
-            {/* Header Section */}
-            <View style={styles.headerRow}>
-              <View style={{ flex: 1, marginRight: 8 }}>
-                <Text
-                  style={[
-                    styles.header,
-                    { color: isDarkMode ? '#ffffff' : '#0f172a' },
-                  ]}
-                  numberOfLines={1}
-                >
-                  Meteo Analaze ☁️
-                </Text>
-                <Text
-                  style={[
-                    styles.subHeader,
-                    { color: isDarkMode ? 'rgba(255, 255, 255, 0.75)' : '#475569' },
-                  ]}
-                >
-                  Atmospheric Research Portal
-                </Text>
-              </View>
+          <View style={[styles.sectionStack, { gap: isCompactPhone ? 8 : 10 }] }>
+            <GlassView
+              variant="card"
+              isDarkMode={isDarkMode}
+              borderRadius={isTablet ? 24 : 20}
+              intensity={isDarkMode ? 28 : 45}
+              style={{
+                paddingVertical: isCompactPhone ? 10 : 12,
+                paddingHorizontal: isCompactPhone ? 10 : 14,
+                marginTop: 2,
+              }}
+            >
+              <View style={[styles.headerRow, { marginBottom: isCompactPhone ? 10 : 14 }] }>
+                <View style={{ flex: 1, marginRight: 8, minWidth: 0 }}>
+                  <Text
+                    style={[
+                      styles.header,
+                      {
+                        color: isDarkMode ? '#ffffff' : '#0f172a',
+                        fontSize: isCompactPhone ? 23 : isTablet ? 29 : 25,
+                      },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    Meteo Analaze ☁️
+                  </Text>
+                  <Text
+                    style={[
+                      styles.subHeader,
+                      {
+                        color: isDarkMode ? 'rgba(255, 255, 255, 0.75)' : '#475569',
+                        fontSize: isCompactPhone ? 11.5 : 12.5,
+                      },
+                    ]}
+                  >
+                    Atmospheric Research Portal
+                  </Text>
+                </View>
 
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <GlassView
-                  variant="chip"
-                  isDarkMode={isDarkMode}
-                  borderRadius={20}
-                  intensity={25}
-                  style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4, gap: 4 }}
-                >
-                  <Text style={{ fontSize: 13 }}>{isDarkMode ? '🌙' : '☀️'}</Text>
-                  <Switch
-                    value={isDarkMode}
-                    onValueChange={setIsDarkMode}
-                    trackColor={{ false: 'rgba(255,255,255,0.4)', true: '#1a73e8' }}
-                    thumbColor={isDarkMode ? '#ffffff' : '#f4f3f4'}
-                  />
-                </GlassView>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    onPress={() => setIsDarkMode((prev) => !prev)}
+                    accessibilityRole="button"
+                    accessibilityLabel={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+                    style={{
+                      width: 98,
+                      height: 40,
+                      borderRadius: 20,
+                      paddingHorizontal: 6,
+                      paddingVertical: 5,
+                      justifyContent: 'center',
+                      backgroundColor: isDarkMode ? 'rgba(15, 23, 42, 0.78)' : 'rgba(255, 255, 255, 0.72)',
+                      borderWidth: 1,
+                      borderColor: isDarkMode ? 'rgba(148, 163, 184, 0.36)' : 'rgba(148, 163, 184, 0.3)',
+                      ...Platform.select({
+                        web: {
+                          boxShadow: isDarkMode
+                            ? '0 8px 20px rgba(15, 23, 42, 0.28)'
+                            : '0 8px 20px rgba(15, 23, 42, 0.10)',
+                        },
+                        default: {
+                          elevation: 5,
+                        },
+                      }),
+                    }}
+                  >
+                    <View style={{ position: 'relative', width: '100%', height: '100%', justifyContent: 'center' }}>
+                      <View
+                        style={{
+                          position: 'absolute',
+                          left: isDarkMode ? 50 : 6,
+                          width: 28,
+                          height: 28,
+                          borderRadius: 14,
+                          backgroundColor: isDarkMode ? '#e2e8f0' : '#ffffff',
+                          borderWidth: 1,
+                          borderColor: isDarkMode ? 'rgba(255,255,255,0.35)' : 'rgba(148,163,184,0.25)',
+                          ...Platform.select({
+                            web: {
+                              boxShadow: '0 4px 12px rgba(15, 23, 42, 0.18)',
+                            },
+                            default: {
+                              elevation: 3,
+                            },
+                          }),
+                        }}
+                      />
 
-                <TouchableOpacity
-                  style={[
-                    styles.navButton,
-                    {
-                      backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.14)' : 'rgba(255, 255, 255, 0.65)',
-                      borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.20)' : 'rgba(255, 255, 255, 0.90)',
-                      paddingHorizontal: 14,
-                      height: 38,
-                    },
-                  ]}
-                  onPress={() => setIsMenuOpen(true)}
-                >
-                  <Text style={[styles.navButtonText, { color: isDarkMode ? '#ffffff' : '#0f172a' }]}>☰</Text>
-                </TouchableOpacity>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 8 }}>
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            opacity: isDarkMode ? 0.45 : 1,
+                            transform: [{ scale: isDarkMode ? 0.96 : 1 }],
+                          }}
+                        >
+                          ☀️
+                        </Text>
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            opacity: isDarkMode ? 1 : 0.45,
+                            transform: [{ scale: isDarkMode ? 1 : 0.96 }],
+                          }}
+                        >
+                          🌙
+                        </Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.navButton,
+                      {
+                        backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.14)' : 'rgba(255, 255, 255, 0.65)',
+                        borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.20)' : 'rgba(255, 255, 255, 0.90)',
+                        paddingHorizontal: isCompactPhone ? 12 : 14,
+                        height: isCompactPhone ? 36 : 38,
+                      },
+                    ]}
+                    onPress={() => setIsMenuOpen(true)}
+                  >
+                    <Text style={[styles.navButtonText, { color: isDarkMode ? '#ffffff' : '#0f172a' }]}>☰</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
+            </GlassView>
 
             {/* Offline Status Indicator */}
             <OfflineBanner isOffline={isOffline} />
@@ -736,120 +805,40 @@ export default function App() {
             )}
           </View>
 
-        {/* Remodeled Navigation Menu */}
-        <Modal visible={isMenuOpen} transparent animationType="fade" onRequestClose={() => setIsMenuOpen(false)}>
-          <View style={{ flex: 1, backgroundColor: 'rgba(10, 16, 28, 0.35)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
-            <BlurView
-              intensity={isDarkMode ? 18 : 26}
-              tint={isDarkMode ? 'dark' : 'light'}
-              style={StyleSheet.absoluteFillObject}
-            />
-            <GlassView
-              variant="elevated"
-              isDarkMode={isDarkMode}
-              borderRadius={26}
-              intensity={50}
-              style={{
-                width: '100%',
-                maxWidth: Math.min(windowWidth - 24, deviceProfile === 'tablet' || deviceProfile === 'largeTablet' ? 480 : 390),
-                maxHeight: '82%',
-                padding: windowWidth < 360 ? 14 : 22,
-                minHeight: 0,
-              }}
-            >
-              <ScrollView
-                style={{ flexGrow: 1, minHeight: 0, maxHeight: '100%' }}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 18, flexGrow: 1 }}
-                keyboardShouldPersistTaps="handled"
-                nestedScrollEnabled={Platform.OS === 'android'}
-                bounces={false}
-              >
-                <View style={{ marginBottom: 18 }}>
-                  <Text style={{ fontSize: 20, fontWeight: '800', color: theme.textPrimary, textAlign: 'center' }}>☁️ Meteo Navigation</Text>
-                </View>
+        </ScrollView>
 
-                <View style={{ gap: 12, marginBottom: 10 }}>
-                  <TouchableOpacity
-                    style={{
-                      backgroundColor: '#1e8e3e',
-                      paddingVertical: 14,
-                      paddingHorizontal: 16,
-                      borderRadius: 16,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      borderWidth: 1,
-                      borderColor: 'rgba(255, 255, 255, 0.25)',
-                    }}
-                    onPress={() => {
-                      setIsMenuOpen(false);
-                      setIsArchiveOpen(true);
-                    }}
-                  >
-                    <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 15 }}>📊 Climate Data Archive</Text>
-                    <Text style={{ color: '#ffffff', fontWeight: 'bold' }}>→</Text>
-                  </TouchableOpacity>
+        <NavigationModal
+          isOpen={isMenuOpen}
+          onClose={() => setIsMenuOpen(false)}
+          onOpenArchive={() => {
+            setIsMenuOpen(false);
+            setIsArchiveOpen(true);
+          }}
+          onOpenSettings={() => {
+            setIsMenuOpen(false);
+            setIsSettingsOpen(true);
+          }}
+          onOpenNotifications={() => {
+            setIsMenuOpen(false);
+            setIsNotificationOpen(true);
+          }}
+          onOpenCompass={() => {
+            setIsMenuOpen(false);
+            setIsCompassVisible(true);
+          }}
+          isDarkMode={isDarkMode}
+          notifyBadgeColor={notifyBadgeColor}
+          theme={theme}
+        />
 
-                  <TouchableOpacity
-                    style={{
-                      backgroundColor: '#1a73e8',
-                      paddingVertical: 14,
-                      paddingHorizontal: 16,
-                      borderRadius: 16,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      borderWidth: 1,
-                      borderColor: 'rgba(255, 255, 255, 0.25)',
-                    }}
-                    onPress={() => {
-                      setIsMenuOpen(false);
-                      setIsSettingsOpen(true);
-                    }}
-                  >
-                    <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 15 }}>⚙️ Settings</Text>
-                    <Text style={{ color: '#ffffff', fontWeight: 'bold' }}>→</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={{
-                      backgroundColor: notifyBadgeColor,
-                      paddingVertical: 14,
-                      paddingHorizontal: 16,
-                      borderRadius: 16,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      borderWidth: 1,
-                      borderColor: 'rgba(255, 255, 255, 0.25)',
-                    }}
-                    onPress={() => {
-                      setIsMenuOpen(false);
-                      setIsNotificationOpen(true);
-                    }}
-                  >
-                    <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 15 }}>🔔 Notifications</Text>
-                    <Text style={{ color: '#ffffff', fontWeight: 'bold' }}>→</Text>
-                  </TouchableOpacity>
-                </View>
-              </ScrollView>
-
-              <TouchableOpacity
-                style={{
-                  backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.06)',
-                  paddingVertical: 12,
-                  borderRadius: 14,
-                  alignItems: 'center',
-                  marginTop: 8,
-                }}
-                onPress={() => setIsMenuOpen(false)}
-              >
-                <Text style={{ color: theme.textPrimary, fontWeight: 'bold' }}>Close Menu</Text>
-              </TouchableOpacity>
-            </GlassView>
-          </View>
-        </Modal>
+        <CompassModal
+          visible={isCompassVisible}
+          onClose={() => {
+            setIsCompassVisible(false);
+            setIsMenuOpen(true);
+          }}
+          location={selectedLocation}
+        />
 
         <ArchiveModal
           isOpen={isArchiveOpen}
@@ -930,7 +919,6 @@ export default function App() {
           </Animated.View>
         )}
 
-        {/* Custom Styled System Alert Dialog */}
         <CustomAlertModal
           visible={alertConfig.visible}
           title={alertConfig.title}
@@ -939,8 +927,6 @@ export default function App() {
           onClose={() => setAlertConfig((prev) => ({ ...prev, visible: false }))}
           theme={theme}
         />
-
-        </ScrollView>
       </WeatherGradientBackground>
     </View>
     </SafeAreaProvider>

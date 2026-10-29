@@ -194,6 +194,20 @@ export const SettingsModal = ({
                   alignItems: 'center',
                   width: '100%',
                 }}
+                onPress={onOpenAlerts}
+              >
+                <Text style={{ color: '#fff', fontWeight: '800', letterSpacing: 0.2 }}>Configure System Alerts</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{
+                  backgroundColor: '#1a73e8',
+                  paddingVertical: 12,
+                  borderRadius: 14,
+                  alignItems: 'center',
+                  width: '100%',
+                  marginTop: 10,
+                }}
                 onPress={onSave}
               >
                 <Text style={{ color: '#fff', fontWeight: '800', letterSpacing: 0.2 }}>Save Settings</Text>

@@ -111,7 +111,7 @@ export const GlassView = ({
   const dynamicBorder = getBorderColor();
   const dynamicWebShadow = getWebShadow();
 
-  const mergedContentStyle = [{ flex: 1 }, contentStyle];
+  const mergedContentStyle = contentStyle ? [contentStyle] : undefined;
 
   if (Platform.OS === 'web') {
     return (
@@ -158,14 +158,7 @@ export const GlassView = ({
         style,
       ]}
     >
-      {BlurView ? (
-        <BlurView
-          intensity={intensity}
-          tint={chosenTint}
-          style={StyleSheet.absoluteFill}
-        />
-      ) : null}
-      <View style={mergedContentStyle}>{children}</View>
+      <View style={[styles.contentLayer, mergedContentStyle]} pointerEvents="auto">{children}</View>
     </View>
   );
 };
@@ -175,6 +168,15 @@ const styles = StyleSheet.create({
     position: 'relative',
     display: 'flex',
     flexDirection: 'column',
+  },
+  blurLayer: {
+    zIndex: 0,
+    pointerEvents: 'none',
+  },
+  contentLayer: {
+    position: 'relative',
+    zIndex: 1,
+    pointerEvents: 'auto',
   },
   nativeShadow: {
     shadowColor: '#0f172a',

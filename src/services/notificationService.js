@@ -251,12 +251,18 @@ export const scheduleDailyMorningBriefing = async (briefingText = 'Good morning 
       return null;
     }
 
-    const trigger = {
-      type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour: 7,
-      minute: 0,
-      repeats: true,
-    };
+    const dailyTriggerType = Notifications?.SchedulableTriggerInputTypes?.DAILY;
+    const trigger = dailyTriggerType
+      ? {
+          type: dailyTriggerType,
+          hour: 7,
+          minute: 0,
+          repeats: true,
+        }
+      : {
+          seconds: 60 * 60 * 24,
+          repeats: true,
+        };
 
     return Notifications.scheduleNotificationAsync({
       content: {
@@ -292,29 +298,38 @@ export const openBatteryOptimizationSettings = async () => {
   }
 
   try {
+    const openSettings = async () => {
+      try {
+        if (IntentLauncher?.startActivityAsync) {
+          await IntentLauncher.startActivityAsync(
+            'android.settings.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS',
+            { data: `package:${Application.applicationId}` }
+          );
+          return;
+        }
+      } catch (e1) {
+        console.warn('Battery optimization intent failed:', e1);
+      }
+
+      try {
+        if (IntentLauncher?.ActivityAction?.IGNORE_BATTERY_OPTIMIZATION_SETTINGS) {
+          await IntentLauncher.startActivityAsync(IntentLauncher.ActivityAction.IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+          return;
+        }
+      } catch (e2) {
+        console.warn('Battery optimization settings fallback intent failed:', e2);
+      }
+
+      if (typeof Linking?.openSettings === 'function') {
+        Linking.openSettings();
+      }
+    };
+
     Alert.alert(
       'Battery Optimization',
       'Please set Meteo Analaze to Unrestricted battery usage so you do not miss severe weather alerts or your daily morning briefing.',
       [
-        {
-          text: 'Open Settings',
-          onPress: async () => {
-            try {
-              await IntentLauncher.startActivityAsync(
-                'android.settings.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS',
-                { data: `package:${Application.applicationId}` }
-              );
-            } catch (e1) {
-              try {
-                await IntentLauncher.startActivityAsync(
-                  IntentLauncher.ActivityAction.IGNORE_BATTERY_OPTIMIZATION_SETTINGS
-                );
-              } catch (e2) {
-                Linking.openSettings();
-              }
-            }
-          },
-        },
+        { text: 'Open Settings', onPress: openSettings },
         { text: 'Later', style: 'cancel' },
       ]
     );

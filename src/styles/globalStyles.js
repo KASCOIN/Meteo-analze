@@ -53,12 +53,14 @@ export const styles = StyleSheet.create({
   searchRow: {
     flexDirection: 'row',
     gap: 10,
-    marginBottom: 12,
+    marginBottom: 8,
+    alignItems: 'stretch',
   },
   searchSection: {
     flex: 1,
     position: 'relative',
     justifyContent: 'center',
+    minWidth: 0,
   },
   searchInput: {
     height: 48,
@@ -194,11 +196,11 @@ export const styles = StyleSheet.create({
   },
   pageStack: {
     width: '100%',
-    gap: 12,
+    gap: 8,
     paddingBottom: 18,
   },
   sectionStack: {
-    gap: 10,
+    gap: 8,
   },
   toast: {
     position: 'absolute',

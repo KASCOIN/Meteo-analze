@@ -300,13 +300,17 @@ export const NotificationModal = ({
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[
-                    modalStyles.closeModalButton,
-                    { backgroundColor: '#1a73e8', width: '100%' },
-                  ]}
+                  style={{
+                    backgroundColor: '#0d6efd',
+                    height: 48,
+                    borderRadius: 12,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    marginTop: 20,
+                  }}
                   onPress={onSave}
                 >
-                  <Text style={{ color: '#fff', fontWeight: '800', letterSpacing: 0.2 }}>Save Settings</Text>
+                  <Text style={{ color: '#fff', fontSize: 15, fontWeight: '800' }}>Save & Confirm Settings 💾</Text>
                 </TouchableOpacity>
               </View>
             </View>

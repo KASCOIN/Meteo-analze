@@ -112,9 +112,9 @@ export const fetchGeminiWeatherAdvice = async ({
   isForNotification = false,
 }) => {
   const apiKey = getGeminiApiKey();
-  if (!current || !apiKey) {
-    console.warn('Gemini request skipped: missing EXPO_PUBLIC_GEMINI_API_KEY');
-    return null;
+  if (!current) return null;
+  if (!apiKey) {
+    return buildProfessionalFallbackAdvice({ locationName, current, wmoDesc, tempUnit });
   }
 
   const snapshotText = buildWeatherSnapshotText(locationName, current, wmoDesc, tempUnit, weatherSnapshot);
