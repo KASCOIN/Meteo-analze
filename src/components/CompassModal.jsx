@@ -10,9 +10,12 @@ import {
   Animated,
   Easing,
 } from 'react-native';
-import { Magnetometer } from 'expo-sensors';
+import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+/**
+ * Maps heading (0-359°) to standard cardinal/intercardinal direction name.
+ */
 const getCardinalDirection = (heading) => {
   const normalized = ((heading % 360) + 360) % 360;
 
@@ -26,29 +29,42 @@ const getCardinalDirection = (heading) => {
   return 'North West';
 };
 
+/**
+ * Formats decimal degree coordinates to standard navigation DMS (Degrees, Minutes, Seconds).
+ */
 const decimalToDMS = (deg, isLat) => {
+  if (deg === undefined || deg === null || isNaN(deg)) return '--°--\'--" -';
   const absolute = Math.abs(deg);
   const degrees = Math.floor(absolute);
   const minutesNotTruncated = (absolute - degrees) * 60;
   const minutes = Math.floor(minutesNotTruncated);
   const seconds = Math.floor((minutesNotTruncated - minutes) * 60);
   const direction = deg >= 0 ? (isLat ? 'N' : 'E') : (isLat ? 'S' : 'W');
-  return `${degrees}°${minutes}'${seconds}\" ${direction}`;
+  return `${degrees}°${minutes}'${seconds}" ${direction}`;
 };
 
-const tickLayout = [
-  { angle: 0, label: 'N' },
-  { angle: 30, label: 'NE' },
-  { angle: 60, label: null },
-  { angle: 90, label: 'E' },
-  { angle: 120, label: null },
-  { angle: 150, label: null },
-  { angle: 180, label: 'S' },
-  { angle: 210, label: null },
-  { angle: 240, label: null },
-  { angle: 270, label: 'W' },
-  { angle: 300, label: null },
-  { angle: 330, label: null },
+/**
+ * Clean dial ticks: 36 ticks total (every 10°).
+ * - 30° intervals: Major ticks (prominent white, 12px height).
+ * - 0° (North): Highlighted major tick (neon cyan, 15px height).
+ * - 10° intervals: Minor ticks (subtle translucent, 7px height).
+ */
+const DIAL_TICKS = Array.from({ length: 36 }, (_, index) => {
+  const angle = index * 10;
+  const isMajor = angle % 30 === 0;
+  const isNorth = angle === 0;
+  return { angle, isMajor, isNorth };
+});
+
+/**
+ * Cardinal Labels positioned at radial offset r = 105px.
+ * Zero tick overlap, clean typography.
+ */
+const CARDINAL_LABELS = [
+  { angle: 0, label: 'N', isNorth: true },
+  { angle: 90, label: 'E', isNorth: false },
+  { angle: 180, label: 'S', isNorth: false },
+  { angle: 270, label: 'W', isNorth: false },
 ];
 
 export const CompassModal = ({ visible, onClose, location }) => {
@@ -56,11 +72,52 @@ export const CompassModal = ({ visible, onClose, location }) => {
   const rotation = useRef(new Animated.Value(0)).current;
   const [heading, setHeading] = useState(0);
   const [permissionStatus, setPermissionStatus] = useState('checking');
-  const subscriptionRef = useRef(null);
 
-  const safeLocation = location || {
-    latitude: 6.702,
-    longitude: 3.396,
+  // Real-time hardware satellite GPS coordinates
+  const [coords, setCoords] = useState(() => ({
+    latitude: location?.latitude ?? 0,
+    longitude: location?.longitude ?? 0,
+  }));
+
+  // Angle unrolling references to prevent 0°/360° jump
+  const lastHeadingRef = useRef(0);
+  const unrolledHeadingRef = useRef(0);
+  const isFirstReadingRef = useRef(true);
+
+  // Sync coords if initial location changes before GPS fix
+  useEffect(() => {
+    if (location?.latitude !== undefined && location?.longitude !== undefined) {
+      setCoords((prev) => {
+        if (prev.latitude === 0 && prev.longitude === 0) {
+          return { latitude: location.latitude, longitude: location.longitude };
+        }
+        return prev;
+      });
+    }
+  }, [location]);
+
+  /**
+   * Continuous angle unrolling:
+   * Calculates the shortest rotation delta in the [-180, 180] range
+   * to eliminate violent 360° spin reversals when crossing North (0°/360°).
+   */
+  const getShortestAngleHeading = (newHeading) => {
+    if (isFirstReadingRef.current) {
+      unrolledHeadingRef.current = newHeading;
+      lastHeadingRef.current = newHeading;
+      return unrolledHeadingRef.current;
+    }
+
+    let diff = newHeading - lastHeadingRef.current;
+
+    // Normalize delta to [-180, 180] range
+    if (diff > 180) diff -= 360;
+    if (diff < -180) diff += 360;
+
+    unrolledHeadingRef.current += diff;
+    lastHeadingRef.current = newHeading;
+
+    return unrolledHeadingRef.current;
   };
 
   const directionLabel = useMemo(() => getCardinalDirection(heading), [heading]);
@@ -80,56 +137,116 @@ export const CompassModal = ({ visible, onClose, location }) => {
       return undefined;
     }
 
-    const startHeadingTracking = async () => {
+    let headingSub = null;
+    let positionSub = null;
+    let isMounted = true;
+
+    const startHardwareTracking = async () => {
       try {
-        const available = await Magnetometer.isAvailableAsync();
-        if (!available) {
-          setPermissionStatus('unsupported');
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (!isMounted) return;
+
+        if (status !== 'granted') {
+          setPermissionStatus('denied');
           return;
         }
 
         setPermissionStatus('granted');
 
-        const subscription = Magnetometer.addListener(({ x, y }) => {
-          if (typeof x !== 'number' || typeof y !== 'number') {
-            return;
-          }
+        // 1. Hardware Compass Sensor Subscription with Angle Unrolling
+        try {
+          headingSub = await Location.watchHeadingAsync((headingData) => {
+            if (!isMounted) return;
 
-          const nextHeading = (Math.atan2(y, x) * 180) / Math.PI + 90;
-          const normalized = (nextHeading + 360) % 360;
-          setHeading(normalized);
+            const rawHeading =
+              headingData.trueHeading >= 0
+                ? headingData.trueHeading
+                : headingData.magHeading >= 0
+                  ? headingData.magHeading
+                  : 0;
 
-          Animated.timing(rotation, {
-            toValue: -normalized,
-            duration: 220,
-            easing: Easing.out(Easing.ease),
-            useNativeDriver: true,
-          }).start();
-        });
+            const normalizedHeading = ((rawHeading % 360) + 360) % 360;
+            const nextHeading = Math.round(normalizedHeading);
 
-        subscriptionRef.current = subscription;
-      } catch (error) {
-        console.warn('Compass heading error:', error);
-        setPermissionStatus('error');
+            setHeading(nextHeading);
+
+            const unrolled = getShortestAngleHeading(nextHeading);
+
+            if (isFirstReadingRef.current) {
+              isFirstReadingRef.current = false;
+              rotation.setValue(-unrolled);
+            } else {
+              Animated.timing(rotation, {
+                toValue: -unrolled,
+                duration: 180,
+                easing: Easing.out(Easing.ease),
+                useNativeDriver: true,
+              }).start();
+            }
+          });
+        } catch (headingErr) {
+          console.warn('Compass heading sensor subscription error:', headingErr);
+        }
+
+        // 2. Phone-Native Hardware GPS Tracking (Offline GNSS, no internet or web APIs needed)
+        try {
+          positionSub = await Location.watchPositionAsync(
+            {
+              accuracy: Location.Accuracy.High,
+              distanceInterval: 1, // Update every 1 meter moved
+              timeInterval: 1000,  // Or every 1 second
+            },
+            (pos) => {
+              if (!isMounted || !pos?.coords) return;
+              const { latitude, longitude } = pos.coords;
+              setCoords({ latitude, longitude });
+            }
+          );
+        } catch (posErr) {
+          console.warn('Hardware GPS tracking subscription error:', posErr);
+        }
+      } catch (err) {
+        console.warn('Compass initialization error:', err);
+        if (isMounted) setPermissionStatus('error');
       }
     };
 
-    startHeadingTracking();
+    startHardwareTracking();
 
     return () => {
-      if (subscriptionRef.current) {
-        subscriptionRef.current.remove();
-        subscriptionRef.current = null;
+      isMounted = false;
+      if (headingSub) {
+        try {
+          headingSub.remove();
+        } catch (e) {}
+        headingSub = null;
       }
+      if (positionSub) {
+        try {
+          positionSub.remove();
+        } catch (e) {}
+        positionSub = null;
+      }
+      isFirstReadingRef.current = true;
+      lastHeadingRef.current = 0;
+      unrolledHeadingRef.current = 0;
     };
   }, [visible, rotation]);
 
+  // Seamless linear rotation across continuous unrolled heading values
   const dialStyle = {
-    transform: [{ rotate: rotation.interpolate({ inputRange: [-360, 360], outputRange: ['-360deg', '360deg'] }) }],
+    transform: [
+      {
+        rotate: rotation.interpolate({
+          inputRange: [-36000, 36000],
+          outputRange: ['-36000deg', '36000deg'],
+        }),
+      },
+    ],
   };
 
-  const dmsLatitude = decimalToDMS(safeLocation.latitude, true);
-  const dmsLongitude = decimalToDMS(safeLocation.longitude, false);
+  const dmsLatitude = decimalToDMS(coords.latitude, true);
+  const dmsLongitude = decimalToDMS(coords.longitude, false);
 
   return (
     <Modal
@@ -141,65 +258,92 @@ export const CompassModal = ({ visible, onClose, location }) => {
       visible={visible}
     >
       <View style={styles.fullScreen}>
+        {/* Top Header */}
         <View style={[styles.headerRow, { paddingTop: insets.top + 12 }]}>
           <TouchableOpacity onPress={onClose} style={styles.backButton}>
             <Text style={styles.backButtonText}>← Back</Text>
           </TouchableOpacity>
         </View>
 
+        {/* Main Content */}
         <View style={styles.mainContent}>
           <Text style={styles.directionText}>{directionLabel}</Text>
 
-          <View style={styles.dialWrap}>
-            <View style={styles.notchTop} />
-            <View style={styles.notchBottom} />
+          {/* Dial Outer Container */}
+          <View style={styles.dialOuterWrapper}>
+            {/* Fixed Heading Indicator Notch at 12 o'clock */}
+            <View style={styles.topNotch} />
 
+            {/* Rotating Compass Dial Ring */}
             <Animated.View style={[styles.tickRing, dialStyle]}>
-              {Array.from({ length: 360 }).map((_, index) => {
-                const angle = index * 1;
-                const isMajor = index % 10 === 0;
-                const tickHeight = isMajor ? 26 : 12;
-                const baseStyle = {
-                  height: tickHeight,
-                  width: isMajor ? 2.5 : 1.5,
-                  borderRadius: 999,
-                  backgroundColor: index % 90 === 0 ? '#38bdf8' : 'rgba(255,255,255,0.46)',
-                  position: 'absolute',
-                  top: 8,
-                  left: '50%',
-                  marginLeft: -1,
-                  transform: [{ rotate: `${angle}deg` }, { translateY: isMajor ? -64 : -58 }],
-                  opacity: isMajor ? 1 : 0.82,
-                };
+              {/* Radial Ticks Layer (30° Major, 10° Minor) */}
+              {DIAL_TICKS.map((tick) => {
+                const tickHeight = tick.isNorth ? 15 : tick.isMajor ? 12 : 7;
+                const tickWidth = tick.isNorth ? 2.5 : tick.isMajor ? 2 : 1.5;
+                const tickColor = tick.isNorth
+                  ? '#38bdf8'
+                  : tick.isMajor
+                    ? 'rgba(255, 255, 255, 0.85)'
+                    : 'rgba(255, 255, 255, 0.3)';
 
-                return <View key={index} style={baseStyle} />;
-              })}
-
-              <View style={styles.centerGlow} />
-
-              {tickLayout.map((item, idx) => {
-                const isNorth = item.label === 'N';
-                const labelColor = isNorth ? '#38bdf8' : 'rgba(255,255,255,0.75)';
-
-                const labelStyle = {
-                  position: 'absolute',
-                  transform: [{ rotate: `${item.angle}deg` }, { translateY: -124 }],
-                };
+                // Placed right along the outer perimeter (r ~ 130px)
+                const translateY = -140 + tickHeight / 2 + 4;
 
                 return (
-                  <View key={`${item.label ?? 'tick'}-${idx}`} style={[styles.tickLabelWrap, labelStyle]}>
-                    <Text style={[styles.tickLabel, { color: labelColor }]}>{item.label}</Text>
-                  </View>
+                  <View
+                    key={`tick-${tick.angle}`}
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      width: tickWidth,
+                      height: tickHeight,
+                      marginLeft: -tickWidth / 2,
+                      marginTop: -tickHeight / 2,
+                      borderRadius: 1,
+                      backgroundColor: tickColor,
+                      transform: [{ rotate: `${tick.angle}deg` }, { translateY }],
+                    }}
+                  />
                 );
               })}
 
-              <View style={styles.midCompassCircle}>
-                <Text style={styles.degreeText}>{Math.round(heading)}°</Text>
-              </View>
+              {/* Cardinal Labels Layer (r = 105px inward, zero overlap with ticks) */}
+              {CARDINAL_LABELS.map((item) => (
+                <View
+                  key={item.label}
+                  style={[
+                    styles.cardinalWrap,
+                    {
+                      transform: [{ rotate: `${item.angle}deg` }, { translateY: -105 }],
+                    },
+                  ]}
+                >
+                  {item.isNorth ? (
+                    <View style={styles.northGroup}>
+                      <Text style={styles.northPointer}>▲</Text>
+                      <Text style={[styles.cardinalLabel, styles.northLabel]}>N</Text>
+                    </View>
+                  ) : (
+                    <Text style={[styles.cardinalLabel, styles.cardinalWhite]}>
+                      {item.label}
+                    </Text>
+                  )}
+                </View>
+              ))}
+
+              {/* Center Ambient Glow */}
+              <View style={styles.centerGlow} />
             </Animated.View>
+
+            {/* Centered Heading Readout */}
+            <View style={styles.centerReadout} pointerEvents="none">
+              <Text style={styles.degreeText}>{Math.round(heading)}°</Text>
+            </View>
           </View>
         </View>
 
+        {/* Calibrating / Sensor Status */}
         {permissionStatus === 'checking' ? (
           <View style={styles.permissionRow}>
             <ActivityIndicator size="small" color="#38bdf8" />
@@ -207,8 +351,11 @@ export const CompassModal = ({ visible, onClose, location }) => {
           </View>
         ) : null}
 
+        {/* Footer with Real-Time Offline Hardware GPS DMS Coordinates */}
         <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom + 24, 32) }]}>
-          <Text style={styles.footerText}>{dmsLatitude}   {dmsLongitude}</Text>
+          <Text style={styles.footerText}>
+            {dmsLatitude}   {dmsLongitude}
+          </Text>
         </View>
       </View>
     </Modal>
@@ -224,18 +371,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-start',
+    paddingHorizontal: 20,
   },
   backButton: {
     paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(255, 255, 255, 0.14)',
   },
   backButtonText: {
     color: '#ffffff',
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '800',
   },
   mainContent: {
@@ -250,103 +398,92 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: '800',
     textAlign: 'center',
-    marginBottom: 18,
-    letterSpacing: 0.4,
+    marginBottom: 24,
+    letterSpacing: 0.5,
   },
-  dialWrap: {
-    width: Math.min(320, '90%'),
-    height: Math.min(320, '90%'),
-    maxWidth: 320,
-    maxHeight: 320,
+  dialOuterWrapper: {
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    alignSelf: 'center',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
   },
-  notchTop: {
+  topNotch: {
     position: 'absolute',
-    top: 10,
-    width: 3,
-    height: 28,
-    borderRadius: 999,
-    backgroundColor: '#ffffff',
-    zIndex: 30,
-  },
-  notchBottom: {
-    position: 'absolute',
-    bottom: 10,
+    top: -2,
     width: 3,
     height: 18,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    zIndex: 10,
+    borderRadius: 1.5,
+    backgroundColor: '#38bdf8',
+    zIndex: 30,
   },
   tickRing: {
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.14)',
-    backgroundColor: 'rgba(255,255,255,0.02)',
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
   },
   centerGlow: {
     position: 'absolute',
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
-    shadowColor: '#38bdf8',
-    shadowOpacity: 0.18,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 0 },
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(56, 189, 248, 0.08)',
   },
-  tickLabelWrap: {
+  centerReadout: {
     position: 'absolute',
-    left: '50%',
-    top: '50%',
-    marginLeft: -12,
-    marginTop: -12,
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     alignItems: 'center',
-  },
-  tickLabel: {
-    fontSize: 12,
-    fontWeight: '800',
-    textAlign: 'center',
-  },
-  midCompassCircle: {
-    width: 132,
-    height: 132,
-    borderRadius: 66,
-    backgroundColor: 'rgba(15, 23, 42, 0.78)',
-    borderWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.28)',
     justifyContent: 'center',
-    alignItems: 'center',
-    position: 'absolute',
   },
   degreeText: {
     color: '#ffffff',
     fontSize: 54,
-    fontWeight: '800',
+    fontWeight: '900',
     textAlign: 'center',
     letterSpacing: -1,
   },
-  footer: {
-    paddingHorizontal: 18,
+  cardinalWrap: {
+    position: 'absolute',
+    left: '50%',
+    top: '50%',
+    width: 32,
+    height: 32,
+    marginLeft: -16,
+    marginTop: -16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  northGroup: {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  footerText: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '700',
+  northPointer: {
+    color: '#38bdf8',
+    fontSize: 9,
+    lineHeight: 10,
+    marginBottom: 1,
+  },
+  cardinalLabel: {
+    fontSize: 14,
+    fontWeight: '800',
     textAlign: 'center',
-    letterSpacing: 0.2,
+  },
+  northLabel: {
+    color: '#38bdf8',
+  },
+  cardinalWhite: {
+    color: '#ffffff',
   },
   permissionRow: {
     flexDirection: 'row',
@@ -359,5 +496,17 @@ const styles = StyleSheet.create({
     color: '#dbeafe',
     fontSize: 13,
     fontWeight: '600',
+  },
+  footer: {
+    paddingHorizontal: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  footerText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '700',
+    textAlign: 'center',
+    letterSpacing: 0.3,
   },
 });

@@ -59,22 +59,24 @@ export const NavigationModal = ({
             <Text style={{ color: '#fff', fontWeight: '800', fontSize: 18 }}>→</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={{
-              backgroundColor: '#0ea5e9',
-              paddingVertical: 14,
-              borderRadius: 16,
-              marginBottom: 12,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              paddingHorizontal: 14,
-            }}
-            onPress={onOpenCompass}
-          >
-            <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>🧭 Digital Compass HUD</Text>
-            <Text style={{ color: '#fff', fontWeight: '800', fontSize: 18 }}>→</Text>
-          </TouchableOpacity>
+          {onOpenCompass && (
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#0ea5e9',
+                paddingVertical: 14,
+                borderRadius: 16,
+                marginBottom: 12,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingHorizontal: 14,
+              }}
+              onPress={onOpenCompass}
+            >
+              <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>🧭 Digital Compass HUD</Text>
+              <Text style={{ color: '#fff', fontWeight: '800', fontSize: 18 }}>→</Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
             style={{

@@ -72,7 +72,7 @@ if (Platform.OS !== 'web') {
 
   TaskManager.defineTask(BACKGROUND_WEATHER_TASK, async () => {
     try {
-      const savedNotifyLoc = await getUserPreferences('notify_location', {
+      const savedNotifyLoc = await getUserPreferences('notifyLocation', {
         latitude: 6.52,
         longitude: 3.37,
         name: 'Present Location',
@@ -250,6 +250,7 @@ export default function App() {
     const initApp = async () => {
       await cleanExpiredCacheData();
 
+      const savedAppSettings = await getUserPreferences('appSettingsCache', null);
       const savedDark = await getUserPreferences('isDarkMode', false);
       const savedTemp = await getUserPreferences('tempUnit', 'C');
       const savedSpeed = await getUserPreferences('speedUnit', 'kmh');
@@ -259,14 +260,25 @@ export default function App() {
       const savedNotifyBadgeColor = await getUserPreferences('notifyBadgeColor', '#0d6efd');
       const savedNotifyVars = await getUserPreferences('notifyVars', { temp: true, precip: true, wind: true, uv: true });
 
-      setIsDarkMode(savedDark);
-      setTempUnit(savedTemp);
-      setSpeedUnit(savedSpeed);
-      if (savedNotifyLoc) setNotifyLocation(savedNotifyLoc);
-      setIsNotifyEnabled(savedNotifyEnabled);
-      setNotifyIntervalMin(savedNotifyInterval);
-      setNotifyBadgeColor(savedNotifyBadgeColor);
-      setNotifyVars(savedNotifyVars);
+      const hydratedSettings = {
+        isDarkMode: savedAppSettings?.isDarkMode ?? savedDark,
+        tempUnit: savedAppSettings?.tempUnit ?? savedTemp,
+        speedUnit: savedAppSettings?.speedUnit ?? savedSpeed,
+        notifyLocation: savedAppSettings?.notifyLocation ?? savedNotifyLoc,
+        isNotifyEnabled: savedAppSettings?.isNotifyEnabled ?? savedNotifyEnabled,
+        notifyIntervalMin: savedAppSettings?.notifyIntervalMin ?? savedNotifyInterval,
+        notifyBadgeColor: savedAppSettings?.notifyBadgeColor ?? savedNotifyBadgeColor,
+        notifyVars: savedAppSettings?.notifyVars ?? savedNotifyVars,
+      };
+
+      setIsDarkMode(hydratedSettings.isDarkMode);
+      setTempUnit(hydratedSettings.tempUnit);
+      setSpeedUnit(hydratedSettings.speedUnit);
+      if (hydratedSettings.notifyLocation) setNotifyLocation(hydratedSettings.notifyLocation);
+      setIsNotifyEnabled(hydratedSettings.isNotifyEnabled);
+      setNotifyIntervalMin(hydratedSettings.notifyIntervalMin);
+      setNotifyBadgeColor(hydratedSettings.notifyBadgeColor);
+      setNotifyVars(hydratedSettings.notifyVars);
 
       if (isApp) {
         try {
@@ -312,6 +324,19 @@ export default function App() {
 
   // Save Preferences
   useEffect(() => {
+    const appSettingsCache = {
+      isDarkMode,
+      tempUnit,
+      speedUnit,
+      selectedLocation,
+      notifyLocation,
+      isNotifyEnabled,
+      notifyIntervalMin,
+      notifyBadgeColor,
+      notifyVars,
+    };
+
+    saveUserPreferences('appSettingsCache', appSettingsCache);
     saveUserPreferences('isDarkMode', isDarkMode);
     saveUserPreferences('tempUnit', tempUnit);
     saveUserPreferences('speedUnit', speedUnit);
@@ -822,23 +847,25 @@ export default function App() {
             setIsMenuOpen(false);
             setIsNotificationOpen(true);
           }}
-          onOpenCompass={() => {
+          onOpenCompass={Platform.OS !== 'web' ? () => {
             setIsMenuOpen(false);
             setIsCompassVisible(true);
-          }}
+          } : undefined}
           isDarkMode={isDarkMode}
           notifyBadgeColor={notifyBadgeColor}
           theme={theme}
         />
 
-        <CompassModal
-          visible={isCompassVisible}
-          onClose={() => {
-            setIsCompassVisible(false);
-            setIsMenuOpen(true);
-          }}
-          location={selectedLocation}
-        />
+        {Platform.OS !== 'web' && (
+          <CompassModal
+            visible={isCompassVisible}
+            onClose={() => {
+              setIsCompassVisible(false);
+              setIsMenuOpen(true);
+            }}
+            location={selectedLocation}
+          />
+        )}
 
         <ArchiveModal
           isOpen={isArchiveOpen}
@@ -882,7 +909,6 @@ export default function App() {
           setTempUnit={setTempUnit}
           speedUnit={speedUnit}
           setSpeedUnit={setSpeedUnit}
-          onOpenAlerts={() => setIsNotificationOpen(true)}
           onSave={() => {
             setIsSettingsOpen(false);
             showAlert('Settings Saved', 'System preferences saved to persistent storage.', 'success');
