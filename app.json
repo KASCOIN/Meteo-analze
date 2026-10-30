@@ -58,9 +58,7 @@
       "GEMINI_API_KEY": ""
     },
     "owner": "mazi3",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.0",
     "updates": {
       "url": "https://u.expo.dev/02dc6756-6a39-465e-84ae-54452b4a360e",
       "checkAutomatically": "ON_LOAD",
