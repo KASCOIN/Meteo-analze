@@ -1,5 +1,43 @@
 import { getDateRange } from '../utils/weatherHelpers';
 
+const parseLocalDateTime = (value) => {
+  if (!value) return null;
+  const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (!match) return null;
+
+  return {
+    year: Number(match[1]),
+    month: Number(match[2]),
+    day: Number(match[3]),
+    hour: Number(match[4]),
+    minute: Number(match[5]),
+  };
+};
+
+const formatLocalTime = (value) => {
+  const parsed = parseLocalDateTime(value);
+  if (!parsed) return '—';
+
+  const hour12 = parsed.hour % 12 || 12;
+  const suffix = parsed.hour >= 12 ? 'PM' : 'AM';
+  const minute = String(parsed.minute).padStart(2, '0');
+  return `${hour12}:${minute} ${suffix}`;
+};
+
+const formatLocalDate = (value) => {
+  const parsed = parseLocalDateTime(value);
+  if (!parsed) return '';
+
+  const utcDate = new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day, parsed.hour, parsed.minute));
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'UTC',
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(utcDate);
+};
+
 export const fetchAndProcessClimateData = async (lat, lon, timeRangeKey = '14d') => {
   try {
     const { startDate, endDate } = getDateRange(timeRangeKey);
@@ -28,7 +66,7 @@ export const fetchAndProcessClimateData = async (lat, lon, timeRangeKey = '14d')
 
     const response = await fetch(apiUrl);
     const raw = await response.json();
-    const now = new Date();
+    const currentTimeValue = raw.current?.time || raw.hourly?.time?.[0];
 
     const current = raw.current ? {
       temp: raw.current?.temperature_2m,
@@ -36,22 +74,22 @@ export const fetchAndProcessClimateData = async (lat, lon, timeRangeKey = '14d')
       humidity: raw.current?.relative_humidity_2m,
       windSpeed: raw.current?.wind_speed_10m,
       weatherCode: raw.current?.weather_code,
-      time: now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }),
-      date: now.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }),
+      time: formatLocalTime(currentTimeValue),
+      date: formatLocalDate(currentTimeValue),
     } : null;
 
     let forecast3Hr = null;
     let forecast1Hr = null;
 
     if (raw.hourly && raw.hourly.time) {
-      const currentHourISO = now.toISOString().slice(0, 13);
-      let currentIdx = raw.hourly.time.findIndex((t) => t.startsWith(currentHourISO));
+      const currentHourISO = currentTimeValue || raw.hourly.time[0];
+      let currentIdx = raw.hourly.time.findIndex((t) => t === currentHourISO);
       if (currentIdx === -1) currentIdx = 0;
 
       const idx1Hr = currentIdx + 1;
       if (raw.hourly.time[idx1Hr]) {
         forecast1Hr = {
-          time: new Date(raw.hourly.time[idx1Hr]).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }),
+          time: formatLocalTime(raw.hourly.time[idx1Hr]),
           temp: raw.hourly.temperature_2m[idx1Hr],
           weatherCode: raw.hourly.weather_code[idx1Hr],
           precipProb: raw.hourly.precipitation_probability ? raw.hourly.precipitation_probability[idx1Hr] : 0,
@@ -63,7 +101,7 @@ export const fetchAndProcessClimateData = async (lat, lon, timeRangeKey = '14d')
       const idx3Hr = currentIdx + 3;
       if (raw.hourly.time[idx3Hr]) {
         forecast3Hr = {
-          time: new Date(raw.hourly.time[idx3Hr]).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }),
+          time: formatLocalTime(raw.hourly.time[idx3Hr]),
           temp: raw.hourly.temperature_2m[idx3Hr],
           weatherCode: raw.hourly.weather_code[idx3Hr],
           precipProb: raw.hourly.precipitation_probability ? raw.hourly.precipitation_probability[idx3Hr] : 0,

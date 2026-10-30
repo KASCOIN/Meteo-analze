@@ -42,17 +42,21 @@ const extractGeminiText = (payload) => {
   return null;
 };
 
-const normalizeGeminiAdvice = (text) => {
-  if (!text) return '';
-  let value = String(text).trim();
-  value = value.replace(/^For\s+(?:Current\s+Position|[^,]+),?\s*/i, '');
-  value = value.replace(/^For\s+[^:]+:\s*/i, '');
-  value = value.replace(/^Expect\s+/i, '');
-  value = value.replace(/\s{2,}/g, ' ');
-  value = value.replace(/^[-•\s]+/, '');
-  if (!/[.!?]$/.test(value)) value = `${value}.`;
-  return value;
-};
+const buildGeminiSystemInstruction = () => `You are an expert meteorologist and personal wardrobe advisor for "Meteo Analaze".
+Your task is to analyze the provided live weather telemetry JSON and output a concise, highly accurate 2-sentence advisory (under 45 words).
+
+CRITICAL ADVISORY RULES:
+1. THERMAL SAFETY (Strictly match clothing to temperatures):
+   - Below -10°C: Require heavy insulated winter coats, thermal base layers, gloves, and face protection. NEVER suggest light outer layers or casual gear.
+   - -10°C to 5°C: Require heavy jacket, parka, sweater, scarf, and warm gloves.
+   - 5°C to 18°C: Suggest light jacket, hoodie, or sweater.
+   - 18°C to 28°C: Suggest comfortable casual clothing, t-shirts, and light sleeves.
+   - Above 28°C: Suggest breathable cotton, sunglasses, and hydration.
+2. PRECIPITATION & WIND:
+   - Only mention an umbrella or rain shell if precipitation probability is greater than 40% or rain is actively occurring.
+   - If snowing or freezing rain, recommend waterproof winter boots and snow protection.
+3. TONAL STANDARD: Professional, concise, actionable, and Google-grade.
+4. OUTPUT FORMAT: Exactly 2 sentences, under 45 words total, no lists, no markdown, no intro text.`;
 
 const buildWeatherSnapshotText = (locationName, current, wmoDesc, tempUnit, weatherSnapshot = null) => {
   const source = weatherSnapshot || { current };
@@ -70,37 +74,77 @@ const buildWeatherSnapshotText = (locationName, current, wmoDesc, tempUnit, weat
   const uvIndex = typeof currentData.uvIndex === 'number' ? currentData.uvIndex : null;
   const pressure = typeof currentData.pressure === 'number' ? currentData.pressure : null;
   const visibility = typeof currentData.visibility === 'number' ? currentData.visibility : null;
+  const precipProb = typeof currentData.precipProb === 'number' ? currentData.precipProb : (typeof currentData.precipitationProbability === 'number' ? currentData.precipitationProbability : 0);
 
   const metrics = [
-    `Location: ${locationName}`,
-    `Conditions: ${wmoDesc}`,
-    `Current temp: ${tempValue}°${tempUnit}`,
-    feelsLike !== null ? `Feels like: ${feelsLike}°${tempUnit}` : null,
-    `Humidity: ${humidity}%`,
-    `Wind: ${windSpeed} ${tempUnit === 'F' ? 'mph' : 'km/h'}`,
-    `Precipitation: ${precipitation} mm`,
-    `Daylight: ${daylight}`,
-    uvIndex !== null ? `UV index: ${uvIndex}` : null,
-    pressure !== null ? `Pressure: ${pressure} hPa` : null,
-    visibility !== null ? `Visibility: ${visibility} km` : null,
-    forecast1Hr ? `Next hour: ${forecast1Hr.time} ${forecast1Hr.temp}°${tempUnit}, ${forecast1Hr.precipProb ?? 0}% precip, wind ${forecast1Hr.windSpeed ?? 0} ${tempUnit === 'F' ? 'mph' : 'km/h'}` : null,
-    forecast3Hr ? `In 3 hours: ${forecast3Hr.time} ${forecast3Hr.temp}°${tempUnit}, ${forecast3Hr.precipProb ?? 0}% precip, wind ${forecast3Hr.windSpeed ?? 0} ${tempUnit === 'F' ? 'mph' : 'km/h'}` : null,
-    today ? `Today: high ${today.tempMax ?? '--'}°${tempUnit}, low ${today.tempMin ?? '--'}°${tempUnit}, total precip ${today.precipSum ?? 0} mm, max wind ${today.windSpeedMax ?? '--'} ${tempUnit === 'F' ? 'mph' : 'km/h'}, UV max ${today.uvIndexMax ?? '--'}` : null,
+    `location: ${locationName}`,
+    `conditions: ${wmoDesc}`,
+    `current_temp_c: ${tempValue}°${tempUnit}`,
+    feelsLike !== null ? `feels_like_c: ${feelsLike}°${tempUnit}` : null,
+    `humidity_percent: ${humidity}%`,
+    `wind_kmh: ${windSpeed}`,
+    `precipitation_mm: ${precipitation}`,
+    `precip_probability_percent: ${precipProb}%`,
+    `daylight: ${daylight}`,
+    uvIndex !== null ? `uv_index: ${uvIndex}` : null,
+    pressure !== null ? `pressure_hpa: ${pressure}` : null,
+    visibility !== null ? `visibility_km: ${visibility}` : null,
+    forecast1Hr ? `next_hour: ${forecast1Hr.time} ${forecast1Hr.temp}°${tempUnit}, precip ${forecast1Hr.precipProb ?? 0}%` : null,
+    forecast3Hr ? `in_three_hours: ${forecast3Hr.time} ${forecast3Hr.temp}°${tempUnit}, precip ${forecast3Hr.precipProb ?? 0}%` : null,
+    today ? `today: high ${today.tempMax ?? '--'}°${tempUnit}, low ${today.tempMin ?? '--'}°${tempUnit}, precip ${today.precipSum ?? 0} mm` : null,
   ].filter(Boolean).join('; ');
 
-  return metrics;
+  return `{${metrics}}`;
+};
+
+const getThermalGuidance = (tempValue) => {
+  if (tempValue < -10) return 'heavy insulated winter coat, thermal base layers, gloves, and face protection';
+  if (tempValue < 5) return 'a heavy parka, sweater, scarf, and warm gloves';
+  if (tempValue < 18) return 'a light jacket, hoodie, or sweater';
+  if (tempValue < 28) return 'comfortable casual layers and light sleeves';
+  return 'breathable cotton, sunglasses, and hydration';
+};
+
+const getRainGuidance = ({ tempValue, precipProb, weatherText }) => {
+  const isSnow = /snow|ice|freezing/i.test(weatherText) || tempValue <= 2;
+  if (isSnow) return 'wear waterproof winter boots and snow protection';
+  if (precipProb > 40) return 'carry an umbrella or rain shell';
+  return 'avoid extra layers unless showers develop';
+};
+
+const normalizeGeminiAdvice = (text) => {
+  if (!text) return '';
+
+  let value = String(text).trim();
+  value = value.replace(/^For\s+(?:Current\s+Position|[^,]+),?\s*/i, '');
+  value = value.replace(/^For\s+[^:]+:\s*/i, '');
+  value = value.replace(/^Expect\s+/i, '');
+  value = value.replace(/^[-•\s]+/, '');
+  value = value.replace(/\s{2,}/g, ' ');
+  value = value.replace(/\s+([,.!?])/g, '$1');
+
+  const sentences = value.split(/(?<=[.!?])\s+/).map((part) => part.trim()).filter(Boolean);
+  const prioritized = (sentences.length > 2 ? sentences.slice(0, 2) : sentences).join(' ');
+  let finalText = prioritized || value;
+
+  if (!/[.!?]$/.test(finalText)) finalText = `${finalText}.`;
+  const words = finalText.split(/\s+/).filter(Boolean);
+  if (words.length > 45) {
+    return `${words.slice(0, 45).join(' ')}.`;
+  }
+
+  return finalText;
 };
 
 const buildProfessionalFallbackAdvice = ({ locationName, current, wmoDesc, tempUnit }) => {
   const tempValue = typeof current?.temp === 'number' ? current.temp : 0;
-  const humidity = typeof current?.humidity === 'number' ? current.humidity : 0;
-  const windSpeed = typeof current?.windSpeed === 'number' ? current.windSpeed : 0;
   const feelsLike = typeof current?.apparentTemp === 'number' ? current.apparentTemp : tempValue;
-  const weatherText = wmoDesc ? wmoDesc.toLowerCase() : 'current conditions';
-  const clothing = tempValue >= 30 ? 'lightweight breathable clothing and sun protection' : tempValue >= 22 ? 'light layers with a breathable top' : 'a light outer layer if the evening cools';
-  const warning = windSpeed > 25 || humidity > 75 ? 'keep an umbrella or rain shell close by and avoid exposed routes' : 'stay hydrated and ease back on strenuous outdoor work during the warmest hours';
+  const precipProb = typeof current?.precipProb === 'number' ? current.precipProb : (typeof current?.precipitationProbability === 'number' ? current.precipitationProbability : 0);
+  const weatherText = wmoDesc ? wmoDesc.toLowerCase() : 'conditions';
+  const clothing = getThermalGuidance(tempValue);
+  const rainAdvice = getRainGuidance({ tempValue, precipProb, weatherText });
 
-  return `Conditions in ${locationName} are ${weatherText}, with ${tempValue}°${tempUnit} air and a feels-like of ${feelsLike}°${tempUnit}. Wear ${clothing}, stay hydrated, and ${warning}.`;
+  return `In ${locationName}, ${weatherText} are around ${tempValue}°${tempUnit}, feeling ${feelsLike}°${tempUnit}. Wear ${clothing}. ${rainAdvice}.`;
 };
 
 export const fetchGeminiWeatherAdvice = async ({
@@ -117,10 +161,11 @@ export const fetchGeminiWeatherAdvice = async ({
     return buildProfessionalFallbackAdvice({ locationName, current, wmoDesc, tempUnit });
   }
 
-  const snapshotText = buildWeatherSnapshotText(locationName, current, wmoDesc, tempUnit, weatherSnapshot);
+  const telemetryText = buildWeatherSnapshotText(locationName, current, wmoDesc, tempUnit, weatherSnapshot);
+
   const prompt = isForNotification
-    ? `Use the exact weather data below for ${locationName} and produce a concise, professional 1-sentence alert with action. Weather snapshot: ${snapshotText}. Search for recent local climate context only if needed. Start directly with the condition itself, not with 'For ${locationName}', 'For Current Position', or 'Expect'. Keep it highly polished, complete, and under 12 words.`
-    : `Use the exact weather data below for ${locationName} and write a polished, professional lifestyle advisory. Weather snapshot: ${snapshotText}. Search for recent local climate context only if it clarifies the conditions. Output exactly 2 complete sentences. Do not start with 'For ${locationName}', 'For Current Position', or 'Expect'. Start with the actual weather condition and then explain the clothing, hydration, and any rain or heat/wind advice in a natural expert tone.`;
+    ? `Weather telemetry: ${telemetryText}. Return a crisp, one-sentence action alert under 12 words.`
+    : `Weather telemetry: ${telemetryText}. Produce exactly 2 sentences, under 45 words total, with weather-safe clothing and precipitation rules strictly followed.`;
 
   let lastError = null;
   for (const modelName of GEMINI_MODELS) {
@@ -138,9 +183,12 @@ export const fetchGeminiWeatherAdvice = async ({
           },
           signal: controller.signal,
           body: JSON.stringify({
+            systemInstruction: {
+              parts: [{ text: buildGeminiSystemInstruction() }],
+            },
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
             generationConfig: {
-              temperature: 0.5,
+              temperature: 0.2,
               topP: 0.9,
               maxOutputTokens: isForNotification ? 60 : 180,
             },

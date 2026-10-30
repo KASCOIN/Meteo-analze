@@ -132,7 +132,12 @@ export const WeatherHeroCard = ({
         </View>
 
         <View style={[(deviceProfile === 'smallPhone' || deviceProfile === 'tinyPhone' || deviceProfile === 'standardPhone') && styles.conditionRightGroupPhone, styles.conditionRightGroup]}>
-          <Text style={[styles.conditionTitle, { color: palette.condition, fontSize: 19 * responsiveScale }]} numberOfLines={1}>
+          <Text
+            style={[styles.conditionTitle, { color: palette.condition, fontSize: 19 * responsiveScale }]}
+            numberOfLines={2}
+            adjustsFontSizeToFit={false}
+            ellipsizeMode="tail"
+          >
             {wmo.desc}
           </Text>
           <Text style={[styles.subMetric, { color: palette.subMetric, fontSize: 12.5 * responsiveScale }]}>
@@ -419,6 +424,9 @@ const styles = StyleSheet.create({
     fontSize: 19,
     fontWeight: '800',
     marginBottom: 4,
+    flexShrink: 1,
+    width: '100%',
+    textAlign: 'left',
   },
   subMetric: {
     fontSize: 12.5,
