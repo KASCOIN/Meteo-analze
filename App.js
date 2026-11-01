@@ -252,8 +252,21 @@ export default function App() {
     const initApp = async () => {
       await cleanExpiredCacheData();
 
+      const normalizeBoolean = (value, fallback = false) => {
+        if (typeof value === 'boolean') return value;
+        if (typeof value === 'string') return value === 'true';
+        if (typeof value === 'number') return value === 1;
+        return fallback;
+      };
+
+      const normalizeNumber = (value, fallback = 60) => {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : fallback;
+      };
+
       const savedAppSettings = await getUserPreferences('appSettingsCache', null);
       const savedLegacy = await getUserPreferences('meteo-app-settings-v1', null);
+      const savedNotificationSettings = await getUserPreferences('meteo-notification-settings', null);
       const savedDark = await getUserPreferences('isDarkMode', false);
       const savedTemp = await getUserPreferences('tempUnit', 'C');
       const savedSpeed = await getUserPreferences('speedUnit', 'kmh');
@@ -269,11 +282,11 @@ export default function App() {
         tempUnit: savedLegacy?.tempUnit ?? savedAppSettings?.tempUnit ?? savedTemp,
         speedUnit: savedLegacy?.speedUnit ?? savedAppSettings?.speedUnit ?? savedSpeed,
         selectedLocation: savedLegacy?.selectedLocation ?? savedAppSettings?.selectedLocation ?? savedSelectedLocation ?? { name: 'Current Position', country: 'GPS', latitude: 6.52, longitude: 3.37 },
-        notifyLocation: savedLegacy?.notifyLocation ?? savedAppSettings?.notifyLocation ?? savedNotifyLoc,
-        isNotifyEnabled: savedLegacy?.isNotifyEnabled ?? savedAppSettings?.isNotifyEnabled ?? savedNotifyEnabled,
-        notifyIntervalMin: savedLegacy?.notifyIntervalMin ?? savedAppSettings?.notifyIntervalMin ?? savedNotifyInterval,
-        notifyBadgeColor: savedLegacy?.notifyBadgeColor ?? savedAppSettings?.notifyBadgeColor ?? savedNotifyBadgeColor,
-        notifyVars: savedLegacy?.notifyVars ?? savedAppSettings?.notifyVars ?? savedNotifyVars,
+        notifyLocation: savedNotificationSettings?.notifyLocation ?? savedLegacy?.notifyLocation ?? savedAppSettings?.notifyLocation ?? savedNotifyLoc,
+        isNotifyEnabled: normalizeBoolean(savedNotificationSettings?.isNotifyEnabled ?? savedLegacy?.isNotifyEnabled ?? savedAppSettings?.isNotifyEnabled ?? savedNotifyEnabled),
+        notifyIntervalMin: normalizeNumber(savedNotificationSettings?.notifyIntervalMin ?? savedLegacy?.notifyIntervalMin ?? savedAppSettings?.notifyIntervalMin ?? savedNotifyInterval, 60),
+        notifyBadgeColor: savedNotificationSettings?.notifyBadgeColor ?? savedLegacy?.notifyBadgeColor ?? savedAppSettings?.notifyBadgeColor ?? savedNotifyBadgeColor,
+        notifyVars: savedNotificationSettings?.notifyVars ?? savedLegacy?.notifyVars ?? savedAppSettings?.notifyVars ?? savedNotifyVars,
       };
 
       setIsDarkMode(Boolean(hydratedSettings.isDarkMode));
@@ -347,8 +360,17 @@ export default function App() {
       notifyVars,
     };
 
+    const notificationSettingsSnapshot = {
+      notifyLocation,
+      isNotifyEnabled,
+      notifyIntervalMin,
+      notifyBadgeColor,
+      notifyVars,
+    };
+
     saveUserPreferences('meteo-app-settings-v1', appSettingsCache);
     saveUserPreferences('appSettingsCache', appSettingsCache);
+    saveUserPreferences('meteo-notification-settings', notificationSettingsSnapshot);
     saveUserPreferences('isDarkMode', isDarkMode);
     saveUserPreferences('tempUnit', tempUnit);
     saveUserPreferences('speedUnit', speedUnit);
