@@ -106,8 +106,13 @@ export const SettingsModal = ({
                 showsVerticalScrollIndicator={false}
               >
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.borderColor }}>
-                  <Text style={{ fontSize: 15, color: theme.textPrimary, fontWeight: '600' }}>Dark Theme Mode</Text>
-                  <Switch value={isDarkMode} onValueChange={setIsDarkMode} trackColor={{ false: 'rgba(255,255,255,0.3)', true: '#1a73e8' }} />
+                  <Text style={{ fontSize: 15, color: theme.textPrimary, fontWeight: '600' }}>Theme</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={{ fontSize: 13, color: theme.textSecondary, fontWeight: '700' }}>Dark</Text>
+                    <View style={{ width: 34, height: 20, borderRadius: 10, backgroundColor: '#1a73e8', justifyContent: 'center', paddingLeft: 4 }}>
+                      <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#fff' }} />
+                    </View>
+                  </View>
                 </View>
 
                 <View style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.borderColor }}>

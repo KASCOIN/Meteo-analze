@@ -178,7 +178,7 @@ export default function App() {
   }, [toastConfig.visible]);
 
   // Preferences
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true);
   const [tempUnit, setTempUnit] = useState('C');
   const [speedUnit, setSpeedUnit] = useState('kmh');
 
@@ -268,7 +268,7 @@ export default function App() {
       const savedAppSettings = await getUserPreferences('appSettingsCache', null);
       const savedLegacy = await getUserPreferences('meteo-app-settings-v1', null);
       const savedNotificationSettings = await getUserPreferences('meteo-notification-settings', null);
-      const savedDark = await getUserPreferences('isDarkMode', false);
+      const savedDark = await getUserPreferences('isDarkMode', true);
       const savedTemp = await getUserPreferences('tempUnit', 'C');
       const savedSpeed = await getUserPreferences('speedUnit', 'kmh');
       const savedNotifyLoc = await getUserPreferences('notifyLocation', null);
@@ -279,7 +279,7 @@ export default function App() {
       const savedSelectedLocation = await getUserPreferences('selectedLocation', null);
 
       const hydratedSettings = {
-        isDarkMode: savedLegacy?.isDarkMode ?? savedAppSettings?.isDarkMode ?? savedDark,
+        isDarkMode: true,
         tempUnit: savedLegacy?.tempUnit ?? savedAppSettings?.tempUnit ?? savedTemp,
         speedUnit: savedLegacy?.speedUnit ?? savedAppSettings?.speedUnit ?? savedSpeed,
         selectedLocation: savedLegacy?.selectedLocation ?? savedAppSettings?.selectedLocation ?? savedSelectedLocation ?? { name: 'Current Position', country: 'GPS', latitude: 6.52, longitude: 3.37 },
@@ -290,7 +290,7 @@ export default function App() {
         notifyVars: savedNotificationSettings?.notifyVars ?? savedLegacy?.notifyVars ?? savedAppSettings?.notifyVars ?? savedNotifyVars,
       };
 
-      setIsDarkMode(Boolean(hydratedSettings.isDarkMode));
+      setIsDarkMode(true);
       setTempUnit(hydratedSettings.tempUnit);
       setSpeedUnit(hydratedSettings.speedUnit);
       setSelectedLocation(hydratedSettings.selectedLocation);
@@ -351,7 +351,7 @@ export default function App() {
   // Save Preferences
   useEffect(() => {
     const appSettingsCache = {
-      isDarkMode,
+      isDarkMode: true,
       tempUnit,
       speedUnit,
       selectedLocation,
@@ -373,7 +373,7 @@ export default function App() {
     saveUserPreferences('meteo-app-settings-v1', appSettingsCache);
     saveUserPreferences('appSettingsCache', appSettingsCache);
     saveUserPreferences('meteo-notification-settings', notificationSettingsSnapshot);
-    saveUserPreferences('isDarkMode', isDarkMode);
+    saveUserPreferences('isDarkMode', true);
     saveUserPreferences('tempUnit', tempUnit);
     saveUserPreferences('speedUnit', speedUnit);
     saveUserPreferences('selectedLocation', selectedLocation);
@@ -753,89 +753,28 @@ export default function App() {
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <TouchableOpacity
                     activeOpacity={0.9}
-                    onPress={() => setIsDarkMode((prev) => !prev)}
-                    accessibilityRole="button"
-                    accessibilityLabel={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
                     style={{
-                      width: 98,
-                      height: 40,
-                      borderRadius: 20,
-                      paddingHorizontal: 6,
-                      paddingVertical: 5,
+                      width: isCompactPhone ? 46 : 50,
+                      height: isCompactPhone ? 40 : 44,
+                      borderRadius: 16,
                       justifyContent: 'center',
-                      backgroundColor: isDarkMode ? 'rgba(15, 23, 42, 0.78)' : 'rgba(255, 255, 255, 0.72)',
+                      alignItems: 'center',
+                      backgroundColor: isDarkMode ? 'rgba(15, 23, 42, 0.82)' : 'rgba(255, 255, 255, 0.82)',
                       borderWidth: 1,
-                      borderColor: isDarkMode ? 'rgba(148, 163, 184, 0.36)' : 'rgba(148, 163, 184, 0.3)',
-                      ...Platform.select({
-                        web: {
-                          boxShadow: isDarkMode
-                            ? '0 8px 20px rgba(15, 23, 42, 0.28)'
-                            : '0 8px 20px rgba(15, 23, 42, 0.10)',
-                        },
-                        default: {
-                          elevation: 5,
-                        },
-                      }),
+                      borderColor: isDarkMode ? 'rgba(148, 163, 184, 0.24)' : 'rgba(148, 163, 184, 0.32)',
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 6 },
+                      shadowOpacity: 0.18,
+                      shadowRadius: 10,
+                      elevation: 5,
                     }}
-                  >
-                    <View style={{ position: 'relative', width: '100%', height: '100%', justifyContent: 'center' }}>
-                      <View
-                        style={{
-                          position: 'absolute',
-                          left: isDarkMode ? 50 : 6,
-                          width: 28,
-                          height: 28,
-                          borderRadius: 14,
-                          backgroundColor: isDarkMode ? '#e2e8f0' : '#ffffff',
-                          borderWidth: 1,
-                          borderColor: isDarkMode ? 'rgba(255,255,255,0.35)' : 'rgba(148,163,184,0.25)',
-                          ...Platform.select({
-                            web: {
-                              boxShadow: '0 4px 12px rgba(15, 23, 42, 0.18)',
-                            },
-                            default: {
-                              elevation: 3,
-                            },
-                          }),
-                        }}
-                      />
-
-                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 8 }}>
-                        <Text
-                          style={{
-                            fontSize: 12,
-                            opacity: isDarkMode ? 0.45 : 1,
-                            transform: [{ scale: isDarkMode ? 0.96 : 1 }],
-                          }}
-                        >
-                          ☀️
-                        </Text>
-                        <Text
-                          style={{
-                            fontSize: 12,
-                            opacity: isDarkMode ? 1 : 0.45,
-                            transform: [{ scale: isDarkMode ? 1 : 0.96 }],
-                          }}
-                        >
-                          🌙
-                        </Text>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.navButton,
-                      {
-                        backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.14)' : 'rgba(255, 255, 255, 0.65)',
-                        borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.20)' : 'rgba(255, 255, 255, 0.90)',
-                        paddingHorizontal: isCompactPhone ? 12 : 14,
-                        height: isCompactPhone ? 36 : 38,
-                      },
-                    ]}
                     onPress={() => setIsMenuOpen(true)}
                   >
-                    <Text style={[styles.navButtonText, { color: isDarkMode ? '#ffffff' : '#0f172a' }]}>☰</Text>
+                    <View style={{ width: 18, height: 14, justifyContent: 'space-between' }}>
+                      <View style={{ height: 2, borderRadius: 2, backgroundColor: isDarkMode ? '#f8fafc' : '#0f172a' }} />
+                      <View style={{ height: 2, borderRadius: 2, backgroundColor: isDarkMode ? '#f8fafc' : '#0f172a' }} />
+                      <View style={{ height: 2, borderRadius: 2, backgroundColor: isDarkMode ? '#f8fafc' : '#0f172a' }} />
+                    </View>
                   </TouchableOpacity>
                 </View>
               </View>
