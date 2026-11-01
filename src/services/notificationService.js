@@ -251,6 +251,8 @@ export const scheduleDailyMorningBriefing = async (briefingText = 'Good morning 
       return null;
     }
 
+    await Notifications.cancelScheduledNotificationAsync('meteo-daily-briefing');
+
     const dailyTriggerType = Notifications?.SchedulableTriggerInputTypes?.DAILY;
     const trigger = dailyTriggerType
       ? {
@@ -265,6 +267,7 @@ export const scheduleDailyMorningBriefing = async (briefingText = 'Good morning 
         };
 
     return Notifications.scheduleNotificationAsync({
+      identifier: 'meteo-daily-briefing',
       content: {
         title: '☀️ Morning Weather Brief',
         body: briefingText,

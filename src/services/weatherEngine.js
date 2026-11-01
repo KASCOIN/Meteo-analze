@@ -61,19 +61,28 @@ export const fetchAndProcessClimateData = async (lat, lon, timeRangeKey = '14d')
     if (isHistorical) {
       apiUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${startDate}&end_date=${endDate}&daily=${dailyParams}&timezone=auto`;
     } else {
-      apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&past_days=30&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code,precipitation_probability,wind_speed_10m,uv_index&daily=${dailyParams}&timezone=auto`;
+      apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&past_days=30&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,cloud_cover,uv_index,pressure_msl,visibility&hourly=temperature_2m,weather_code,precipitation_probability,wind_speed_10m,wind_gusts_10m,cloud_cover,uv_index,precipitation&daily=${dailyParams}&timezone=auto`;
     }
 
     const response = await fetch(apiUrl);
     const raw = await response.json();
     const currentTimeValue = raw.current?.time || raw.hourly?.time?.[0];
+    const currentIndex = raw.hourly?.time ? raw.hourly.time.findIndex((t) => t === currentTimeValue) : -1;
+    const safeCurrentIndex = currentIndex >= 0 ? currentIndex : 0;
 
     const current = raw.current ? {
       temp: raw.current?.temperature_2m,
       apparentTemp: raw.current?.apparent_temperature,
       humidity: raw.current?.relative_humidity_2m,
       windSpeed: raw.current?.wind_speed_10m,
+      windGusts: raw.current?.wind_gusts_10m ?? (raw.current?.wind_speed_10m ? raw.current.wind_speed_10m * 1.35 : 0),
+      cloudCover: raw.current?.cloud_cover ?? 0,
       weatherCode: raw.current?.weather_code,
+      precipitation: raw.current?.precipitation ?? 0,
+      precipProb: raw.hourly?.precipitation_probability?.[safeCurrentIndex] ?? 0,
+      uvIndex: raw.current?.uv_index ?? raw.hourly?.uv_index?.[safeCurrentIndex] ?? 0,
+      pressure: raw.current?.pressure_msl ?? null,
+      visibility: raw.current?.visibility ?? null,
       time: formatLocalTime(currentTimeValue),
       date: formatLocalDate(currentTimeValue),
     } : null;
@@ -94,7 +103,9 @@ export const fetchAndProcessClimateData = async (lat, lon, timeRangeKey = '14d')
           weatherCode: raw.hourly.weather_code[idx1Hr],
           precipProb: raw.hourly.precipitation_probability ? raw.hourly.precipitation_probability[idx1Hr] : 0,
           windSpeed: raw.hourly.wind_speed_10m[idx1Hr],
+          windGusts: raw.hourly.wind_gusts_10m ? raw.hourly.wind_gusts_10m[idx1Hr] : raw.hourly.wind_speed_10m[idx1Hr] * 1.35,
           uvIndex: raw.hourly.uv_index ? raw.hourly.uv_index[idx1Hr] : 0,
+          cloudCover: raw.hourly.cloud_cover ? raw.hourly.cloud_cover[idx1Hr] : 0,
         };
       }
 
@@ -106,6 +117,9 @@ export const fetchAndProcessClimateData = async (lat, lon, timeRangeKey = '14d')
           weatherCode: raw.hourly.weather_code[idx3Hr],
           precipProb: raw.hourly.precipitation_probability ? raw.hourly.precipitation_probability[idx3Hr] : 0,
           windSpeed: raw.hourly.wind_speed_10m[idx3Hr],
+          windGusts: raw.hourly.wind_gusts_10m ? raw.hourly.wind_gusts_10m[idx3Hr] : raw.hourly.wind_speed_10m[idx3Hr] * 1.35,
+          uvIndex: raw.hourly.uv_index ? raw.hourly.uv_index[idx3Hr] : 0,
+          cloudCover: raw.hourly.cloud_cover ? raw.hourly.cloud_cover[idx3Hr] : 0,
         };
       }
     }

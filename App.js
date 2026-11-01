@@ -214,6 +214,7 @@ export default function App() {
   const [notifyIntervalMin, setNotifyIntervalMin] = useState(60);
   const [notifyBadgeColor, setNotifyBadgeColor] = useState('#0d6efd');
   const [notifyVars, setNotifyVars] = useState({ temp: true, precip: true, wind: true, uv: true });
+  const notificationTimerRef = useRef(null);
 
   // Weather Payload & AI
   const [weatherPayload, setWeatherPayload] = useState({ current: null, forecast1Hr: null, forecast3Hr: null });
@@ -223,6 +224,7 @@ export default function App() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const theme = getTheme(isDarkMode);
+  const isCompassEnabled = Platform.OS !== 'web';
 
   // 1. Ticking Live Clock & 12-Hour Scheduled Cache Triggers (00:00 & 12:00)
   useEffect(() => {
@@ -251,6 +253,7 @@ export default function App() {
       await cleanExpiredCacheData();
 
       const savedAppSettings = await getUserPreferences('appSettingsCache', null);
+      const savedLegacy = await getUserPreferences('meteo-app-settings-v1', null);
       const savedDark = await getUserPreferences('isDarkMode', false);
       const savedTemp = await getUserPreferences('tempUnit', 'C');
       const savedSpeed = await getUserPreferences('speedUnit', 'kmh');
@@ -259,26 +262,34 @@ export default function App() {
       const savedNotifyInterval = await getUserPreferences('notifyIntervalMin', 60);
       const savedNotifyBadgeColor = await getUserPreferences('notifyBadgeColor', '#0d6efd');
       const savedNotifyVars = await getUserPreferences('notifyVars', { temp: true, precip: true, wind: true, uv: true });
+      const savedSelectedLocation = await getUserPreferences('selectedLocation', null);
 
       const hydratedSettings = {
-        isDarkMode: savedAppSettings?.isDarkMode ?? savedDark,
-        tempUnit: savedAppSettings?.tempUnit ?? savedTemp,
-        speedUnit: savedAppSettings?.speedUnit ?? savedSpeed,
-        notifyLocation: savedAppSettings?.notifyLocation ?? savedNotifyLoc,
-        isNotifyEnabled: savedAppSettings?.isNotifyEnabled ?? savedNotifyEnabled,
-        notifyIntervalMin: savedAppSettings?.notifyIntervalMin ?? savedNotifyInterval,
-        notifyBadgeColor: savedAppSettings?.notifyBadgeColor ?? savedNotifyBadgeColor,
-        notifyVars: savedAppSettings?.notifyVars ?? savedNotifyVars,
+        isDarkMode: savedLegacy?.isDarkMode ?? savedAppSettings?.isDarkMode ?? savedDark,
+        tempUnit: savedLegacy?.tempUnit ?? savedAppSettings?.tempUnit ?? savedTemp,
+        speedUnit: savedLegacy?.speedUnit ?? savedAppSettings?.speedUnit ?? savedSpeed,
+        selectedLocation: savedLegacy?.selectedLocation ?? savedAppSettings?.selectedLocation ?? savedSelectedLocation ?? { name: 'Current Position', country: 'GPS', latitude: 6.52, longitude: 3.37 },
+        notifyLocation: savedLegacy?.notifyLocation ?? savedAppSettings?.notifyLocation ?? savedNotifyLoc,
+        isNotifyEnabled: savedLegacy?.isNotifyEnabled ?? savedAppSettings?.isNotifyEnabled ?? savedNotifyEnabled,
+        notifyIntervalMin: savedLegacy?.notifyIntervalMin ?? savedAppSettings?.notifyIntervalMin ?? savedNotifyInterval,
+        notifyBadgeColor: savedLegacy?.notifyBadgeColor ?? savedAppSettings?.notifyBadgeColor ?? savedNotifyBadgeColor,
+        notifyVars: savedLegacy?.notifyVars ?? savedAppSettings?.notifyVars ?? savedNotifyVars,
       };
 
-      setIsDarkMode(hydratedSettings.isDarkMode);
+      setIsDarkMode(Boolean(hydratedSettings.isDarkMode));
       setTempUnit(hydratedSettings.tempUnit);
       setSpeedUnit(hydratedSettings.speedUnit);
+      setSelectedLocation(hydratedSettings.selectedLocation);
       if (hydratedSettings.notifyLocation) setNotifyLocation(hydratedSettings.notifyLocation);
-      setIsNotifyEnabled(hydratedSettings.isNotifyEnabled);
-      setNotifyIntervalMin(hydratedSettings.notifyIntervalMin);
-      setNotifyBadgeColor(hydratedSettings.notifyBadgeColor);
-      setNotifyVars(hydratedSettings.notifyVars);
+      setIsNotifyEnabled(Boolean(hydratedSettings.isNotifyEnabled));
+      setNotifyIntervalMin(Number(hydratedSettings.notifyIntervalMin || 60));
+      setNotifyBadgeColor(hydratedSettings.notifyBadgeColor || '#0d6efd');
+      setNotifyVars({
+        temp: hydratedSettings.notifyVars?.temp ?? true,
+        precip: hydratedSettings.notifyVars?.precip ?? true,
+        wind: hydratedSettings.notifyVars?.wind ?? true,
+        uv: hydratedSettings.notifyVars?.uv ?? true,
+      });
 
       if (isApp) {
         try {
@@ -336,6 +347,7 @@ export default function App() {
       notifyVars,
     };
 
+    saveUserPreferences('meteo-app-settings-v1', appSettingsCache);
     saveUserPreferences('appSettingsCache', appSettingsCache);
     saveUserPreferences('isDarkMode', isDarkMode);
     saveUserPreferences('tempUnit', tempUnit);
@@ -422,7 +434,11 @@ export default function App() {
 
       const curr = data?.current;
       if (!curr) {
-        showAlert('⚡ Weather Alert', 'No live or cached weather data is available for this alert yet.', 'info');
+        if (Platform.OS === 'web') {
+          showToast('⚡ Live Weather Advisory', 'No live or cached weather data is available for this alert yet.', 'warning');
+        } else {
+          showAlert('⚡ Weather Alert', 'No live or cached weather data is available for this alert yet.', 'info');
+        }
         return;
       }
 
@@ -495,6 +511,71 @@ export default function App() {
       console.warn('Notification trigger failed:', error);
     }
   };
+
+  useEffect(() => {
+    if (notificationTimerRef.current) {
+      clearInterval(notificationTimerRef.current);
+      notificationTimerRef.current = null;
+    }
+
+    if (Platform.OS !== 'web' || !isNotifyEnabled) {
+      return undefined;
+    }
+
+    const intervalMs = Math.max(Number(notifyIntervalMin || 60), 30) * 60 * 1000;
+    const runPeriodicWebAlert = async () => {
+      try {
+        await triggerNotificationCheck();
+      } catch (error) {
+        console.warn('Web alert timer failed:', error);
+      }
+    };
+
+    runPeriodicWebAlert();
+    notificationTimerRef.current = setInterval(runPeriodicWebAlert, intervalMs);
+
+    return () => {
+      if (notificationTimerRef.current) {
+        clearInterval(notificationTimerRef.current);
+        notificationTimerRef.current = null;
+      }
+    };
+  }, [isNotifyEnabled, notifyIntervalMin, notifyLocation, weatherPayload, isOffline, tempUnit]);
+
+  useEffect(() => {
+    if (!isApp) return undefined;
+
+    const scheduleNativeAlerts = async () => {
+      try {
+        await initializeNotificationSystem();
+        await scheduleDailyMorningBriefing('Good morning — here is your weather briefing.');
+
+        if (!isNotifyEnabled) {
+          await Notifications.cancelScheduledNotificationAsync('meteo-alert-interval');
+          return;
+        }
+
+        await Notifications.cancelScheduledNotificationAsync('meteo-alert-interval');
+        const intervalSeconds = Math.max(Number(notifyIntervalMin || 60), 30) * 60;
+        await Notifications.scheduleNotificationAsync({
+          identifier: 'meteo-alert-interval',
+          content: {
+            title: '📍 Meteo Live Brief',
+            body: 'Your configured weather brief is ready to refresh.',
+            sound: true,
+          },
+          trigger: {
+            seconds: intervalSeconds,
+            repeats: true,
+          },
+        });
+      } catch (error) {
+        console.warn('Native alert scheduling failed:', error);
+      }
+    };
+
+    scheduleNativeAlerts();
+  }, [isApp, isNotifyEnabled, notifyIntervalMin, notifyLocation]);
 
   const handleSearch = async (text) => {
     setSearchQuery(text);
@@ -847,7 +928,7 @@ export default function App() {
             setIsMenuOpen(false);
             setIsNotificationOpen(true);
           }}
-          onOpenCompass={Platform.OS !== 'web' ? () => {
+          onOpenCompass={isCompassEnabled ? () => {
             setIsMenuOpen(false);
             setIsCompassVisible(true);
           } : undefined}
@@ -856,7 +937,7 @@ export default function App() {
           theme={theme}
         />
 
-        {Platform.OS !== 'web' && (
+        {isCompassEnabled && (
           <CompassModal
             visible={isCompassVisible}
             onClose={() => {

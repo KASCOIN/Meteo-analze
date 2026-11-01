@@ -14,6 +14,8 @@ export const NavigationModal = ({
 }) => {
   if (!isOpen) return null;
 
+  const showCompassButton = Platform.OS !== 'web' && onOpenCompass;
+
   return (
     <Modal visible={isOpen} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableOpacity
@@ -59,7 +61,7 @@ export const NavigationModal = ({
             <Text style={{ color: '#fff', fontWeight: '800', fontSize: 18 }}>→</Text>
           </TouchableOpacity>
 
-          {onOpenCompass && (
+          {showCompassButton && (
             <TouchableOpacity
               style={{
                 backgroundColor: '#0ea5e9',

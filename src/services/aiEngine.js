@@ -74,6 +74,8 @@ const buildWeatherSnapshotText = (locationName, current, wmoDesc, tempUnit, weat
   const uvIndex = typeof currentData.uvIndex === 'number' ? currentData.uvIndex : null;
   const pressure = typeof currentData.pressure === 'number' ? currentData.pressure : null;
   const visibility = typeof currentData.visibility === 'number' ? currentData.visibility : null;
+  const cloudCover = typeof currentData.cloudCover === 'number' ? currentData.cloudCover : 0;
+  const windGusts = typeof currentData.windGusts === 'number' ? currentData.windGusts : 0;
   const precipProb = typeof currentData.precipProb === 'number' ? currentData.precipProb : (typeof currentData.precipitationProbability === 'number' ? currentData.precipitationProbability : 0);
 
   const metrics = [
@@ -83,6 +85,8 @@ const buildWeatherSnapshotText = (locationName, current, wmoDesc, tempUnit, weat
     feelsLike !== null ? `feels_like_c: ${feelsLike}°${tempUnit}` : null,
     `humidity_percent: ${humidity}%`,
     `wind_kmh: ${windSpeed}`,
+    `wind_gusts_kmh: ${windGusts}`,
+    `cloud_cover_percent: ${cloudCover}%`,
     `precipitation_mm: ${precipitation}`,
     `precip_probability_percent: ${precipProb}%`,
     `daylight: ${daylight}`,
