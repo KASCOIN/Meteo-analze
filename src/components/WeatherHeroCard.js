@@ -70,11 +70,16 @@ export const WeatherHeroCard = ({
   return (
     <GlassView
       isDarkMode={isDarkMode}
-      intensity={isDarkMode ? 45 : 60}
-      variant="card"
+      intensity={isDarkMode ? 30 : 50}
+      variant="elevated"
       borderRadius={28}
       style={[
         styles.heroOuter,
+        {
+          backgroundColor: isDarkMode ? 'rgba(15, 23, 42, 0.86)' : 'rgba(255, 255, 255, 0.8)',
+          borderColor: isDarkMode ? 'rgba(148, 163, 184, 0.18)' : 'rgba(148, 163, 184, 0.22)',
+          borderWidth: 1,
+        },
         deviceProfile === 'tablet' && styles.heroOuterTablet,
         deviceProfile === 'largeTablet' && styles.heroOuterLargeTablet,
       ]}
@@ -293,6 +298,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 980,
     alignSelf: 'center',
+    overflow: 'hidden',
     ...Platform.select({
       web: {
         boxShadow: '0 16px 40px 0 rgba(15, 23, 42, 0.12)',

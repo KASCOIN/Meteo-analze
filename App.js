@@ -45,6 +45,7 @@ import {
   initializeNotificationSystem,
   scheduleDailyMorningBriefing,
   getExpoPushToken,
+  hydrateAndScheduleSavedNotifications,
 } from './src/services/notificationService';
 import { getCityFromCoordinates } from './src/services/locationService';
 
@@ -307,6 +308,7 @@ export default function App() {
       if (isApp) {
         try {
           await initializeNotificationSystem();
+          await hydrateAndScheduleSavedNotifications();
           await scheduleDailyMorningBriefing('Good morning — here is your weather briefing.');
           const pushToken = await getExpoPushToken();
           if (pushToken) {

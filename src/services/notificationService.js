@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import * as IntentLauncher from 'expo-intent-launcher';
 import * as Application from 'expo-application';
 import { Alert, Platform, Linking } from 'react-native';
+import { getUserPreferences } from '../utils/storage';
 
 export const WEATHER_ALERT_ACTIONS = [
   { identifier: 'VIEW_RADAR', buttonTitle: 'View Radar', options: { isDestructive: false, isAuthenticationRequired: false } },
@@ -28,6 +29,8 @@ export const configureNotificationHandler = () => {
       shouldShowAlert: true,
       shouldPlaySound: true,
       shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
     }),
   });
 };
@@ -45,8 +48,8 @@ export const ensureAndroidNotificationChannels = async () => {
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
     });
 
-    await Notifications.setNotificationChannelAsync('daily-briefings', {
-      name: 'Daily Briefings',
+    await Notifications.setNotificationChannelAsync('meteo-daily-briefings', {
+      name: 'Meteo Daily Briefings',
       importance: Notifications.AndroidImportance.HIGH,
       sound: 'default',
       vibrationPattern: [0, 250],
@@ -56,6 +59,87 @@ export const ensureAndroidNotificationChannels = async () => {
   } catch (error) {
     console.warn('Notification channel setup failed:', error);
   }
+};
+
+export const loadSavedNotificationPreferences = async () => {
+  const saved = (await getUserPreferences('meteo-notification-settings', null)) ||
+    (await getUserPreferences('appSettingsCache', null)) ||
+    (await getUserPreferences('notifyIntervalMin', null));
+
+  const normalizeEnabled = (value) => {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') return value === 'true';
+    if (typeof value === 'number') return value === 1;
+    return false;
+  };
+
+  const normalizeInterval = (value, fallback = 60) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  };
+
+  const payload = typeof saved === 'object' && saved !== null ? saved : {};
+
+  return {
+    enabled: normalizeEnabled(payload.isNotifyEnabled ?? payload.enabled),
+    intervalMin: normalizeInterval(payload.notifyIntervalMin ?? payload.intervalMin, 60),
+    notifyLocation: payload.notifyLocation ?? null,
+    notifyVars: payload.notifyVars ?? { temp: true, precip: true, wind: true, uv: true },
+    badgeColor: payload.notifyBadgeColor ?? '#0d6efd',
+    title: payload.title ?? 'Meteo Daily Brief',
+  };
+};
+
+export const getAllScheduledNotifications = async () => {
+  if (Platform.OS === 'web') return [];
+  return Notifications.getAllScheduledNotificationsAsync();
+};
+
+export const scheduleSavedNotificationPreferences = async (prefsOverride = null) => {
+  if (Platform.OS === 'web') return null;
+
+  const savedPrefs = prefsOverride || (await loadSavedNotificationPreferences());
+  const enabled = Boolean(savedPrefs?.enabled);
+  const intervalMin = Math.max(Number(savedPrefs?.intervalMin || 60), 15);
+  const identifier = 'meteo-daily-briefing';
+
+  if (!enabled) {
+    await Notifications.cancelScheduledNotificationAsync(identifier);
+    return null;
+  }
+
+  const scheduled = await getAllScheduledNotifications();
+  const alreadyExists = scheduled.some((notification) => notification.identifier === identifier);
+  if (alreadyExists) {
+    await Notifications.cancelScheduledNotificationAsync(identifier);
+  }
+
+  const permission = await requestExactAlarmPermissionsAsync();
+  if (permission?.status === 'denied') {
+    console.warn('Exact alarm permission denied; skipping saved notification schedule.');
+    return null;
+  }
+
+  const triggerSeconds = intervalMin * 60;
+  const result = await Notifications.scheduleNotificationAsync({
+    identifier,
+    content: {
+      title: savedPrefs?.title || '☀️ Meteo Daily Brief',
+      body: 'Your saved weather alert settings are active and the brief is scheduled to refresh.',
+      sound: 'default',
+      channelId: 'meteo-daily-briefings',
+      data: {
+        type: 'daily-briefing',
+        saved: true,
+      },
+    },
+    trigger: {
+      seconds: triggerSeconds,
+      repeats: true,
+    },
+  });
+
+  return result;
 };
 
 export const showInAppAlertFallback = (body, title = '⚡ Weather Alert') => {
@@ -355,6 +439,12 @@ export const initializeNotificationSystem = async () => {
   }
 };
 
+export const hydrateAndScheduleSavedNotifications = async () => {
+  await initializeNotificationSystem();
+  const savedPrefs = await loadSavedNotificationPreferences();
+  return scheduleSavedNotificationPreferences(savedPrefs);
+};
+
 export default {
   WEATHER_ALERT_ACTIONS,
   configureNotificationHandler,
@@ -362,6 +452,10 @@ export default {
   requestNotificationPermissions,
   getExactAlarmPermissionsAsync,
   requestExactAlarmPermissionsAsync,
+  loadSavedNotificationPreferences,
+  getAllScheduledNotifications,
+  scheduleSavedNotificationPreferences,
+  hydrateAndScheduleSavedNotifications,
   scheduleDailyMorningBriefing,
   triggerInstantTestNotification,
   getExpoPushToken,
